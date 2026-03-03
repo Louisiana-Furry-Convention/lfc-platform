@@ -4,6 +4,10 @@ from sqlalchemy import pool
 from alembic import context
 
 import os
+import sys
+
+# Make project root importable so "import lfc_api" works when Alembic runs
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from lfc_api.models import Base  # noqa
 from lfc_api.core.config import DATABASE_URL

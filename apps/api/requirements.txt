@@ -3,8 +3,7 @@ uvicorn
 sqlalchemy
 alembic
 pydantic
+email-validator
 python-jose
 passlib[bcrypt]
 python-multipart
-email-validator
-
