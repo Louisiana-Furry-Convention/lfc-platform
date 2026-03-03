@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_DIR="${HOME}/lfc-platform"
+API_DIR="${REPO_DIR}/apps/api"
+SERVICE_NAME="lfc-api"
+
+cmd="${1:-help}"
+
+ensure_repo() {
+  if [ ! -d "${REPO_DIR}/.git" ]; then
+    echo "ERROR: Repo not found at ${REPO_DIR}"
+    exit 1
+  fi
+}
+
+ensure_venv() {
+  cd "${API_DIR}"
+  if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
+  fi
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+  pip install --upgrade pip >/dev/null
+  pip install -r requirements.txt >/dev/null
+}
+
+migrate_db() {
+  cd "${API_DIR}"
+  export DATABASE_URL="${DATABASE_URL:-sqlite:///./lfc_edge.db}"
+  alembic upgrade head
+}
+
+case "${cmd}" in
+  help)
+    cat <<EOF
+LFC Edge Control
+
+Commands:
+  lfc start     - start API service
+  lfc stop      - stop API service
+  lfc restart   - restart API service
+  lfc status    - show service status
+  lfc update    - pull latest code + migrate DB + restart
+  lfc health    - check API health endpoint
+  lfc logs      - show recent logs (press q to exit)
+EOF
+    ;;
+
+  start) sudo systemctl start "${SERVICE_NAME}" ;;
+  stop) sudo systemctl stop "${SERVICE_NAME}" ;;
+  restart) sudo systemctl restart "${SERVICE_NAME}" ;;
+  status) sudo systemctl status "${SERVICE_NAME}" --no-pager ;;
+  update)
+    ensure_repo
+    echo "Pulling latest code..."
+    cd "${REPO_DIR}"
+    git pull
+
+    echo "Ensuring Python env + deps..."
+    ensure_venv
+
+    echo "Running DB migrations..."
+    migrate_db
+
+    echo "Restarting service..."
+    sudo systemctl restart "${SERVICE_NAME}"
+
+    echo "Done."
+    ;;
+  health)
+    curl -s http://127.0.0.1:8000/health || true
+    echo
+    ;;
+  logs)
+    sudo journalctl -u "${SERVICE_NAME}" -n 200 --no-pager
+    ;;
+  *)
+    echo "Unknown command: ${cmd}"
+    echo "Run: lfc help"
+    exit 1
+    ;;
+esac
