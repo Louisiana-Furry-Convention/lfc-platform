@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from lfc_api.db.session import get_db
+from lfc_api.models.user import User
 from lfc_api.models.ticketing import Ticket, CheckIn
 from lfc_api.models.ledger import DomainEvent
 
@@ -16,6 +17,12 @@ class CheckInIn(BaseModel):
 
 @router.post("")
 def check_in(data: CheckInIn, db: Session = Depends(get_db)):
+    performer = db.query(User).filter(User.id == data.performed_by_user_id).first()
+    if not performer or not performer.is_active:
+        raise HTTPException(status_code=403, detail="Invalid staff user")
+
+    if performer.role not in {"staff", "checkin", "admin"}:
+        raise HTTPException(status_code=403, detail="Not authorized to perform check-in")
     t = db.query(Ticket).filter(Ticket.qr_token == data.qr_token).first()
     if not t:
         raise HTTPException(status_code=404, detail="Invalid QR")
