@@ -4,6 +4,10 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from lfc_api.db.session import get_db
+from lfc_api.models.user import User
 
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
@@ -20,6 +24,28 @@ class IssueTestTicketIn(BaseModel):
     email: EmailStr
     display_name: str = ""
 
+@router.get("")
+def list_tickets(db: Session = Depends(get_db), limit: int = 50):
+    rows = (
+        db.query(Ticket, User)
+        .join(User, User.id == Ticket.user_id)
+        .order_by(Ticket.created_at.desc() if hasattr(Ticket, "created_at") else Ticket.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+    out = []
+    for t, u in rows:
+        out.append(
+            {
+                "ticket_id": t.id,
+                "status": getattr(t, "status", "unknown"),
+                "email": u.email,
+                "display_name": getattr(u, "display_name", ""),
+                "user_id": u.id,
+            }
+        )
+    return out
 
 @router.post("/issue_test")
 def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
