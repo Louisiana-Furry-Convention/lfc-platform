@@ -1,20 +1,22 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
 from lfc_api.core.security import hash_password, verify_password, create_access_token
+from lfc_api.core.authz import get_current_user
+from lfc_api.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class SignupIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     display_name: str = ""
 
 class LoginIn(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 @router.post("/signup")
@@ -41,3 +43,7 @@ def login(data: LoginIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=403, detail="Inactive user")
     token = create_access_token(subject=u.id, role=u.role)
     return {"access_token": token, "token_type": "bearer", "role": u.role}
+
+@router.get("/me")
+def me(u: User = Depends(get_current_user)):
+    return {"ok": True, "id": u.id, "email": u.email, "role": u.role, "is_active": u.is_active}
