@@ -217,6 +217,17 @@
             <div id="checkins-table"></div>
           </div>
         </div>
+
+         <div class="card">
+  <h3>DB Viewer</h3>
+
+  <button onclick="loadDBTable('users')">Users</button>
+  <button onclick="loadDBTable('tickets')">Tickets</button>
+  <button onclick="loadDBTable('checkins')">Check-ins</button>
+  <button onclick="loadDBTable('ticket_types')">Ticket Types</button>
+
+  <div id="db-view"></div>
+</div>
       </section>
     </section>
   </div>
@@ -259,6 +270,31 @@
     minute: "2-digit",
     second: "2-digit",
   });
+}
+
+window.loadDBTable = async function(name) {
+  try {
+    const rows = await api(`/admin/db/table?table=${name}&limit=50`);
+
+    const cols = rows.rows.length ? Object.keys(rows.rows[0]) : [];
+
+    const table = `
+      <table class="table">
+        <thead>
+          <tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows.rows.map(r => `
+            <tr>${cols.map(c => `<td>${r[c] ?? ""}</td>`).join("")}</tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    $("db-view").innerHTML = table;
+  } catch (e) {
+    $("db-view").innerHTML = `<div class="bad">Failed: ${e.message}</div>`;
+  }
 }
 
     async function api(path, opts = {}) {
@@ -426,7 +462,7 @@ async function loadLiveFeed() {
               <td>${r.tier || ""}</td>
             </tr>
           `).join("")}
-        </tbody>
+        </tbody>x
       </table>
     `;
 

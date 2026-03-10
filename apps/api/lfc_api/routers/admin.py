@@ -287,3 +287,38 @@ def lane_analytics(
             for lane, count in lanes
         ],
     }
+@router.get("/db/table")
+def db_table(
+    table: str,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    allowed = {
+        "users": User,
+        "tickets": Ticket,
+        "checkins": CheckIn,
+        "ticket_types": TicketType,
+    }
+
+    model = allowed.get(table)
+    if not model:
+        raise HTTPException(status_code=400, detail="invalid table")
+
+    rows = db.query(model).limit(limit).all()
+
+    result = []
+    for r in rows:
+        row = {}
+        for c in r.__table__.columns:
+            v = getattr(r, c.name)
+            row[c.name] = str(v) if v is not None else None
+        result.append(row)
+
+    return {
+        "table": table,
+        "count": len(result),
+        "rows": result
+    }
