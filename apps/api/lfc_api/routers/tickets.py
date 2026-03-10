@@ -47,6 +47,39 @@ def list_tickets(db: Session = Depends(get_db), limit: int = 50):
         )
     return out
 
+@router.get("/public/ticket_types")
+def public_ticket_types(event_id: str = "lfc-2027", db: Session = Depends(get_db)):
+    rows = db.query(TicketType).filter(TicketType.event_id == event_id).all()
+
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "price_cents": r.price_cents,
+            "currency": r.currency,
+        }
+        for r in rows
+    ]
+
+@router.get("/public/ticket_types")
+def public_ticket_types(event_id: str = "lfc-2027", db: Session = Depends(get_db)):
+    rows = (
+        db.query(TicketType)
+        .filter(TicketType.event_id == event_id)
+        .all()
+    )
+
+    return [
+        {
+            "id": r.id,
+            "event_id": r.event_id,
+            "name": getattr(r, "name", r.id),
+            "price_cents": r.price_cents,
+            "currency": r.currency,
+        }
+        for r in rows
+    ]
+
 @router.post("/issue_test")
 def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
     # Validate event exists
