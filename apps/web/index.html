@@ -93,6 +93,10 @@
         <h2>Dashboard</h2>
         <p class="muted">Role-based quick actions.</p>
         <div class="kpi" id="kpi"></div>
+        <div class="card" id="buy-card">
+  <h3>Buy Ticket</h3>
+  <div id="ticket-list"></div>
+</div>
       </section>
 
       <!-- STAFF CHECK-IN -->
@@ -235,6 +239,41 @@
   <script src="/web/vendor/jsqr.min.js"></script>
 
   <script>
+window.loadTicketTiers = async function() {
+  try {
+    const tiers = await api("/tickets/public/ticket_types?event_id=lfc-2027");
+
+    const html = tiers.map(t => `
+      <div class="tier">
+        <b>${t.name}</b> — $${(t.price_cents/100).toFixed(2)}
+        <button onclick="buyTicket('${t.id}')">Buy</button>
+      </div>
+    `).join("");
+
+    document.getElementById("ticket-list").innerHTML = html;
+
+  } catch (e) {
+    document.getElementById("ticket-list").innerText = "Failed to load ticket tiers";
+  }
+};
+
+window.buyTicket = async function(ticketTypeId) {
+  try {
+    const res = await api("/tickets/orders/create", {
+      method: "POST",
+      body: JSON.stringify({
+        event_id: "lfc-2027",
+        ticket_type_id: ticketTypeId
+      })
+    });
+
+    alert("Ticket issued!\nQR Token:\n" + res.qr_token);
+
+  } catch (e) {
+    alert("Purchase failed: " + e.message);
+  }
+};
+
   (() => {
     const API_BASE = "";
     const LS_KEY = "lfc_auth_v1";
@@ -272,6 +311,34 @@
   });
 }
 
+async function loadSurgeAlert() {
+  try {
+    const data = await api("/admin/arrival_surge?event_id=lfc-2027");
+
+    const existing = $("surge-alert");
+    if (existing) existing.remove();
+
+    if (!data.surge) return;
+
+    const div = document.createElement("div");
+    div.id = "surge-alert";
+    div.className = "card";
+    div.style.background = "#6b1b1b";
+
+    div.innerHTML = `
+      <h3>⚠ Arrival Surge</h3>
+      <p>Last minute: <b>${data.last_minute}</b></p>
+      <p>Average/min: <b>${data.avg_per_min}</b></p>
+    `;
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.prepend(div);
+
+  } catch (e) {
+    console.error("surge detection failed", e);
+  }
+}
+
 window.loadDBTable = async function(name) {
   try {
     const rows = await api(`/admin/db/table?table=${name}&limit=50`);
@@ -295,9 +362,9 @@ window.loadDBTable = async function(name) {
   } catch (e) {
     $("db-view").innerHTML = `<div class="bad">Failed: ${e.message}</div>`;
   }
-}
+};
 
-    async function api(path, opts = {}) {
+    window.api = async function(path, opts={}) {
       const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
       if (auth?.token) headers["Authorization"] = `Bearer ${auth.token}`;
 
@@ -321,7 +388,7 @@ window.loadDBTable = async function(name) {
       }
 
       return data;
-    }
+    };
 
     const pages = ["home", "checkin", "admin"];
 
@@ -567,6 +634,7 @@ async function loadLiveFeed() {
         `;
 
         kpi.appendChild(breakdown);
+        if (typeof loadTicketTiers === "function") await loadTicketTiers();
         if (typeof loadHomeStats === "function") await loadHomeStats();
         if (typeof loadLiveFeed === "function") await loadLiveFeed();
         if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics();
@@ -955,6 +1023,7 @@ function formatArrivalTime(value) {
 setInterval(async () => {
   if (!auth?.token) return;
   try { if (typeof loadLiveFeed === "function") await loadLiveFeed(); } catch (e) {}
+  try { if (typeof loadSurgeAlert === "function") await loadSurgeAlert(); } catch (e) {}
   try { if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics(); } catch (e) {}
 }, 15000);
 
