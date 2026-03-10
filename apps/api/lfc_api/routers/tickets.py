@@ -14,9 +14,9 @@ from lfc_api.models.user import User
 from lfc_api.models.event import ConventionEvent
 from lfc_api.models.ticketing import TicketType, Order, Ticket
 from lfc_api.core.security import hash_password
+from lfc_api.core.badge import sign_ticket
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
-
 
 class IssueTestTicketIn(BaseModel):
     event_id: str = "lfc-2027"
@@ -54,7 +54,7 @@ def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Validate ticket type exists (and belongs to event)
+    # Validate ticket type exists
     tt = db.query(TicketType).filter(TicketType.id == data.ticket_type_id).first()
     if not tt or tt.event_id != data.event_id:
         raise HTTPException(status_code=404, detail="Ticket type not found for event")
@@ -63,7 +63,6 @@ def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
     email = data.email.lower()
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Dev-only: fixed short password to avoid bcrypt byte-length issues on Pi
         user = User(
             id=str(uuid.uuid4()),
             email=email,
@@ -75,7 +74,7 @@ def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
         db.add(user)
         db.flush()
 
-    # Create order (simple)
+    # Create order
     order = Order(
         id=str(uuid.uuid4()),
         user_id=user.id,
@@ -86,18 +85,20 @@ def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
     db.add(order)
     db.flush()
 
-    # Issue ticket
-    qr_token = secrets.token_urlsafe(24)
+    # Create ticket first, then sign its id
     ticket = Ticket(
         id=str(uuid.uuid4()),
         event_id=data.event_id,
         user_id=user.id,
         ticket_type_id=tt.id,
         order_id=order.id,
-        qr_token=qr_token,
+        qr_token="",   # temporary
         status="issued",
     )
     db.add(ticket)
+    db.flush()
+
+    ticket.qr_token = sign_ticket(ticket.id)
 
     db.commit()
 
@@ -108,7 +109,7 @@ def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
         "user_id": user.id,
         "order_id": order.id,
         "ticket_id": ticket.id,
-        "qr_token": qr_token,
+        "qr_token": ticket.qr_token,
         "price_cents": tt.price_cents,
         "currency": tt.currency,
     }
