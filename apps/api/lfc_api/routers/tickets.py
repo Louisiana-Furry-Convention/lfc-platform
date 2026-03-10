@@ -31,6 +31,9 @@ class CreateOrderIn(BaseModel):
     event_id: str = "lfc-2027"
     ticket_type_id: str
 
+class CompleteOrderIn(BaseModel):
+    order_id: str
+
 @router.get("/qr/{qr_token}")
 def ticket_qr(qr_token: str):
     img = qrcode.make(qr_token)
@@ -53,7 +56,8 @@ def create_order(
         id=str(uuid.uuid4()),
         user_id=current_user.id,
         event_id=data.event_id,
-        status="paid_test",
+        ticket_type_id=data.ticket_type_id,
+        status="pending",
         total_cents=tt.price_cents,
     )
     db.add(order)
@@ -73,13 +77,57 @@ def create_order(
     db.commit()
 
     return {
+    "ok": True,
+    "order_id": order.id,
+    "event_id": order.event_id,
+    "ticket_type_id": order.ticket_type_id,
+    "status": order.status,
+    "price_cents": tt.price_cents,
+    "currency": tt.currency,
+}
+
+@router.post("/orders/complete")
+def complete_order(
+    data: CompleteOrderIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    order = db.query(Order).filter(Order.id == data.order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status == "paid":
+        return {"ok": True, "order_id": order.id, "status": order.status}
+
+    tt = db.query(TicketType).filter(TicketType.id == order.ticket_type_id).first()
+    if not tt:
+        raise HTTPException(status_code=404, detail="Ticket type not found")
+
+    qr_token = secrets.token_urlsafe(24)
+
+    ticket = Ticket(
+        id=str(uuid.uuid4()),
+        event_id=order.event_id,
+        user_id=order.user_id,
+        ticket_type_id=order.ticket_type_id,
+        order_id=order.id,
+        qr_token=qr_token,
+        status="issued",
+    )
+    db.add(ticket)
+
+    order.status = "paid"
+    db.commit()
+
+    return {
         "ok": True,
         "order_id": order.id,
+        "status": order.status,
         "ticket_id": ticket.id,
-        "ticket_type_id": tt.id,
         "qr_token": qr_token,
-        "price_cents": tt.price_cents,
-        "currency": tt.currency,
     }
 
 @router.get("")

@@ -16,6 +16,7 @@ class Order(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     event_id: Mapped[str] = mapped_column(String(64), ForeignKey("events.id"), index=True)
+    ticket_type_id: Mapped[str] = mapped_column(String(64), ForeignKey("ticket_types.id"))
     status: Mapped[str] = mapped_column(String(20), default="created")
     total_cents: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped["DateTime"] = mapped_column(DateTime, server_default=func.now())

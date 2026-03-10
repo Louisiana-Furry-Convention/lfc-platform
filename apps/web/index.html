@@ -467,8 +467,13 @@ mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
       show("view-app", true);
 
       buildNav(auth.role);
-      go("home");
-      renderHome();
+      if (auth?.role === "attendee") {
+  go("badge");
+} else {
+  go("home");
+}
+
+renderHome();
     }
 
 async function loadMyBadge() {
