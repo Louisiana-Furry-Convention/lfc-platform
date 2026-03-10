@@ -7,7 +7,7 @@ from sqlalchemy import func
 
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
-from lfc_api.models.ticketing import CheckIn, Ticket
+from lfc_api.models.ticketing import CheckIn, Ticket, TicketType
 
 from lfc_api.core.deps import get_current_user
 from lfc_api.core.authz import require_roles
@@ -111,7 +111,6 @@ def recent_checkins(
         for ci, t, u in rows
     ]
 
-
 @router.get("/stats")
 def admin_stats(
     event_id: str = "lfc-2027",
@@ -121,6 +120,7 @@ def admin_stats(
     require_roles(current_user, ["admin"])
 
     issued = db.query(func.count(Ticket.id)).filter(Ticket.event_id == event_id).scalar() or 0
+
     checked_in = (
         db.query(func.count(CheckIn.id))
         .join(Ticket, Ticket.id == CheckIn.ticket_id)
@@ -129,8 +129,30 @@ def admin_stats(
         or 0
     )
 
-    return {"event_id": event_id, "tickets_issued": int(issued), "checked_in": int(checked_in)}
+    issued_by_type_rows = (
+        db.query(TicketType.name, func.count(Ticket.id))
+        .join(Ticket, Ticket.ticket_type_id == TicketType.id)
+        .filter(Ticket.event_id == event_id)
+        .group_by(TicketType.name)
+        .all()
+    )
 
+    checked_in_by_type_rows = (
+        db.query(TicketType.name, func.count(CheckIn.id))
+        .join(Ticket, Ticket.ticket_type_id == TicketType.id)
+        .join(CheckIn, CheckIn.ticket_id == Ticket.id)
+        .filter(Ticket.event_id == event_id)
+        .group_by(TicketType.name)
+        .all()
+    )
+
+    return {
+        "event_id": event_id,
+        "tickets_issued": int(issued),
+        "checked_in": int(checked_in),
+        "issued_by_type": {name: int(count) for name, count in issued_by_type_rows},
+        "checked_in_by_type": {name: int(count) for name, count in checked_in_by_type_rows},
+    }
 
 @router.post("/create_staff_test")
 def create_staff_test(
@@ -173,3 +195,34 @@ def create_staff_test(
     db.commit()
     return {"ok": True, "user_id": user.id, "email": user.email, "role": user.role, "created": True}
 
+@router.get("/live_feed")
+def live_feed(
+    limit: int = 20,
+    event_id: str = "lfc-2027",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    rows = (
+        db.query(CheckIn, Ticket, User, TicketType)
+        .select_from(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .join(User, User.id == Ticket.user_id)
+        .join(TicketType, TicketType.id == Ticket.ticket_type_id)
+        .filter(Ticket.event_id == event_id)
+        .order_by(CheckIn.id.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "time": ci.id,
+            "email": u.email,
+            "display_name": getattr(u, "display_name", ""),
+            "tier": tt.name,
+            "ticket_id": t.id,
+        }
+        for ci, t, u, tt in rows
+    ]
