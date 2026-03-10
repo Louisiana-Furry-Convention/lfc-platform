@@ -1,10 +1,21 @@
 from fastapi import FastAPI
-from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from lfc_api.routers import auth_router, events_router, checkin_router, tickets_router, admin_router
+from fastapi.responses import FileResponse
+from pathlib import Path
+
+from lfc_api.routers import auth, events, tickets, checkin, admin, me, attendance
 
 app = FastAPI(title="LFC Platform API", version="0.1.0")
+
+# Routers
+app.include_router(auth.router)
+app.include_router(events.router)
+app.include_router(tickets.router)
+app.include_router(checkin.router)
+app.include_router(admin.router)
+app.include_router(me.router)
+app.include_router(attendance.router)
 
 # Dev CORS (lock down later)
 app.add_middleware(
@@ -15,15 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve web UI
-WEB_DIR = Path(__file__).resolve().parents[3] / "apps" / "web"
-app.mount("/ui", StaticFiles(directory=str(WEB_DIR), html=True), name="ui")
+# Serve the web UI (apps/web/index.html) at /
+WEB_DIR = Path(__file__).resolve().parents[2] / "web"   # -> apps/web
+app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 
-app.include_router(auth_router)
-app.include_router(events_router)
-app.include_router(checkin_router)
-app.include_router(tickets_router)
-app.include_router(admin_router)
+@app.get("/")
+def root():
+    return FileResponse(str(WEB_DIR / "index.html"))
 
 @app.get("/health")
 def health():
