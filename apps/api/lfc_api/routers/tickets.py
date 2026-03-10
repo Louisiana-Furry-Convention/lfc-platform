@@ -1,6 +1,9 @@
 import uuid
 import secrets
+import io
+import qrcode
 
+from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -27,6 +30,14 @@ class IssueTestTicketIn(BaseModel):
 class CreateOrderIn(BaseModel):
     event_id: str = "lfc-2027"
     ticket_type_id: str
+
+@router.get("/qr/{qr_token}")
+def ticket_qr(qr_token: str):
+    img = qrcode.make(qr_token)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="image/png")
 
 @router.post("/orders/create")
 def create_order(

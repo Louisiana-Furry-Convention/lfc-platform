@@ -258,7 +258,8 @@ async function loadMyTickets() {
       <div class="card">
         <h3>${t.ticket_type_name || t.ticket_type_id}</h3>
         <div>Status: ${t.status}</div>
-        <div class="mono">${t.qr_token}</div>
+<img src="/tickets/qr/${t.qr_token}" width="180">        
+<div class="mono">${t.qr_token}</div>
       </div>
     `).join("");
   } catch (e) {
