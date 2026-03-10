@@ -1,6 +1,7 @@
 from sqlalchemy import String, Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 from lfc_api.models.base import Base
+from datetime import datetime
 
 class TicketType(Base):
     __tablename__ = "ticket_types"
@@ -32,8 +33,12 @@ class Ticket(Base):
 
 class CheckIn(Base):
     __tablename__ = "checkins"
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    ticket_id: Mapped[str] = mapped_column(String(36), ForeignKey("tickets.id"), unique=True, index=True)
-    lane: Mapped[str] = mapped_column(String(40), default="main")
-    checked_in_at: Mapped["DateTime"] = mapped_column(DateTime, server_default=func.now())
-    performed_by_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    ticket_id: Mapped[str] = mapped_column(String(36), ForeignKey("tickets.id"), nullable=False, index=True)
+    lane: Mapped[str] = mapped_column(String(40), default="main", nullable=False)
+
+    checked_in_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    performed_by_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+
+    created_at: Mapped[datetime | None] = mapped_column(DateTime, default=datetime.utcnow, nullable=True)

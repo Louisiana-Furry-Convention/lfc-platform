@@ -78,7 +78,6 @@ def promote_user(
     db.commit()
     return {"ok": True, "user_id": u.id, "role": u.role, "is_active": u.is_active}
 
-
 @router.get("/checkins")
 def recent_checkins(
     event_id: str = "lfc-2027",
@@ -93,7 +92,7 @@ def recent_checkins(
         .join(Ticket, Ticket.id == CheckIn.ticket_id)
         .join(User, User.id == Ticket.user_id)
         .filter(Ticket.event_id == event_id)
-        .order_by(CheckIn.created_at.desc())
+        .order_by(CheckIn.created_at.desc(), CheckIn.id.desc())
         .limit(limit)
         .all()
     )
@@ -101,7 +100,7 @@ def recent_checkins(
     return [
         {
             "checkin_id": ci.id,
-            "created_at": str(ci.created_at),
+            "created_at": ci.created_at.isoformat() if ci.created_at else None,
             "ticket_id": t.id,
             "event_id": t.event_id,
             "ticket_type_id": t.ticket_type_id,
@@ -211,14 +210,14 @@ def live_feed(
         .join(User, User.id == Ticket.user_id)
         .join(TicketType, TicketType.id == Ticket.ticket_type_id)
         .filter(Ticket.event_id == event_id)
-        .order_by(CheckIn.id.desc())
+        .order_by(CheckIn.created_at.desc(), CheckIn.id.desc())
         .limit(limit)
         .all()
     )
 
     return [
         {
-            "time": ci.id,
+            "time": ci.created_at.isoformat() if ci.created_at else None,
             "email": u.email,
             "display_name": getattr(u, "display_name", ""),
             "tier": tt.name,
