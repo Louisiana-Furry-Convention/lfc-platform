@@ -99,6 +99,12 @@
 </div>
       </section>
 
+    <!-- My Tickets -->
+<section id="page-tickets" class="card" style="display:none;">
+  <h2>My Tickets</h2>
+  <div id="my-tickets"></div>
+</section>
+
       <!-- STAFF CHECK-IN -->
       <section id="page-checkin" class="card" style="display:none;">
         <h2>Staff Check-in</h2>
@@ -239,6 +245,27 @@
   <script src="/web/vendor/jsqr.min.js"></script>
 
   <script>
+async function loadMyTickets() {
+  try {
+    const rows = await api("/me/tickets");
+
+    if (!rows.length) {
+      document.getElementById("my-tickets").innerHTML = "No tickets yet.";
+      return;
+    }
+
+    document.getElementById("my-tickets").innerHTML = rows.map(t => `
+      <div class="card">
+        <h3>${t.ticket_type_name || t.ticket_type_id}</h3>
+        <div>Status: ${t.status}</div>
+        <div class="mono">${t.qr_token}</div>
+      </div>
+    `).join("");
+  } catch (e) {
+    document.getElementById("my-tickets").innerHTML = `Failed: ${e.message}`;
+  }
+}
+
 window.loadTicketTiers = async function() {
   try {
     const tiers = await api("/tickets/public/ticket_types?event_id=lfc-2027");
@@ -390,11 +417,12 @@ window.loadDBTable = async function(name) {
       return data;
     };
 
-    const pages = ["home", "checkin", "admin"];
+    const pages = ["home", "tickets", "checkin", "admin"];
 
     function go(page) {
-      for (const p of pages) show(`page-${p}`, p === page);
-    }
+  for (const p of pages) show(`page-${p}`, p === page);
+  if (page === "tickets") loadMyTickets();
+}
 
     function buildNav(role) {
       const nav = $("nav");
@@ -410,6 +438,7 @@ window.loadDBTable = async function(name) {
       };
 
       mkBtn("Home", "home");
+      mkBtn("My Tickets", "tickets");
       mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
       mkBtn("Admin", "admin", ["admin"]);
     }
