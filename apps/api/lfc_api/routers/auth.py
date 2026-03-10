@@ -1,6 +1,6 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
@@ -19,19 +19,29 @@ class LoginIn(BaseModel):
     email: str
     password: str
 
+class SignupIn(BaseModel):
+    email: EmailStr
+    display_name: str
+    password: str
+
 @router.post("/signup")
 def signup(data: SignupIn, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == data.email.lower()).first():
-        raise HTTPException(status_code=409, detail="Email already exists")
-    u = User(
+    existing = db.query(User).filter(User.email == data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="email already registered")
+
+    user = User(
         id=str(uuid.uuid4()),
-        email=data.email.lower(),
+        email=data.email,
         display_name=data.display_name,
         password_hash=hash_password(data.password),
         role="attendee",
+        is_active=True,
     )
-    db.add(u)
+
+    db.add(user)
     db.commit()
+
     return {"ok": True}
 
 @router.post("/login")
