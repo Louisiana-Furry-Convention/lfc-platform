@@ -11,17 +11,12 @@ from lfc_api.models.user import User
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class SignupIn(BaseModel):
-    email: str
+    email: EmailStr
     password: str
     display_name: str = ""
 
 class LoginIn(BaseModel):
     email: str
-    password: str
-
-class SignupIn(BaseModel):
-    email: EmailStr
-    display_name: str
     password: str
 
 @router.post("/signup")
