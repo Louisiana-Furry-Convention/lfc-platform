@@ -330,6 +330,35 @@
       renderHome();
     }
 
+async function loadLaneAnalytics() {
+  try {
+    const data = await api("/admin/lane_analytics?event_id=lfc-2027");
+    const topLane = (data.lanes && data.lanes.length) ? data.lanes[0] : null;
+
+    const html = `
+      <div class="card" id="lane-analytics-card">
+        <h3>Lane Analytics</h3>
+        <table class="table">
+          <tbody>
+            <tr><td>Total Check-ins</td><td>${data.total_checkins ?? 0}</td></tr>
+            <tr><td>Last 5 Minutes</td><td>${data.last_5_min ?? 0}</td></tr>
+            <tr><td>Last 60 Minutes</td><td>${data.last_60_min ?? 0}</td></tr>
+            <tr><td>Top Lane</td><td>${topLane ? `${topLane.lane} (${topLane.count})` : "-"}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    const existing = $("lane-analytics-card");
+    if (existing) existing.remove();
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.appendChild(Object.assign(document.createElement("div"), { outerHTML: html }));
+  } catch (e) {
+    console.error("lane analytics failed", e);
+  }
+}
+
     function formatArrivalTime(value) {
   if (!value) return "-";
   const d = new Date(value);
@@ -339,6 +368,36 @@
     minute: "2-digit",
     second: "2-digit",
   });
+}
+
+async function loadLaneAnalytics() {
+  try {
+    const data = await api("/admin/lane_analytics?event_id=lfc-2027");
+    const topLane = (data.lanes && data.lanes.length) ? data.lanes[0] : null;
+
+    const existing = $("lane-analytics-card");
+    if (existing) existing.remove();
+
+    const div = document.createElement("div");
+    div.id = "lane-analytics-card";
+    div.className = "card";
+    div.innerHTML = `
+      <h3>Lane Analytics</h3>
+      <table class="table">
+        <tbody>
+          <tr><td>Total Check-ins</td><td>${data.total_checkins ?? 0}</td></tr>
+          <tr><td>Last 5 Minutes</td><td>${data.last_5_min ?? 0}</td></tr>
+          <tr><td>Last 60 Minutes</td><td>${data.last_60_min ?? 0}</td></tr>
+          <tr><td>Top Lane</td><td>${topLane ? `${topLane.lane} (${topLane.count})` : "-"}</td></tr>
+        </tbody>
+      </table>
+    `;
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.appendChild(div);
+  } catch (e) {
+    console.error("lane analytics failed", e);
+  }
 }
 
 async function loadLiveFeed() {
@@ -472,7 +531,9 @@ async function loadLiveFeed() {
         `;
 
         kpi.appendChild(breakdown);
-        await loadLiveFeed();
+        if (typeof loadHomeStats === "function") await loadHomeStats();
+        if (typeof loadLiveFeed === "function") await loadLiveFeed();
+        if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics();
       } catch (e) {
         const div = document.createElement("div");
         div.className = "card";
@@ -855,9 +916,11 @@ function formatArrivalTime(value) {
 
     updateCamDiag();
 
-    setInterval(() => {
-      if (auth?.token) renderHome();
-    }, 5000);
+setInterval(async () => {
+  if (!auth?.token) return;
+  try { if (typeof loadLiveFeed === "function") await loadLiveFeed(); } catch (e) {}
+  try { if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics(); } catch (e) {}
+}, 15000);
 
     render();
   })();

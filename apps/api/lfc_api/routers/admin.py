@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from lfc_api.db.session import get_db
@@ -225,3 +226,64 @@ def live_feed(
         }
         for ci, t, u, tt in rows
     ]
+@router.get("/lane_analytics")
+def lane_analytics(
+    event_id: str = "lfc-2027",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    now = datetime.utcnow()
+    last_5 = now - timedelta(minutes=5)
+    last_60 = now - timedelta(minutes=60)
+
+    base = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+    )
+
+    total = base.count()
+
+    last_5_count = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+        .filter(CheckIn.created_at >= last_5)
+        .count()
+    )
+
+    last_60_count = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+        .filter(CheckIn.created_at >= last_60)
+        .count()
+    )
+
+    lanes = (
+        db.query(
+            CheckIn.lane,
+            func.count(CheckIn.id).label("count"),
+        )
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+        .group_by(CheckIn.lane)
+        .order_by(func.count(CheckIn.id).desc())
+        .all()
+    )
+
+    return {
+        "event_id": event_id,
+        "total_checkins": total,
+        "last_5_min": last_5_count,
+        "last_60_min": last_60_count,
+        "lanes": [
+            {
+                "lane": lane or "main",
+                "count": count,
+            }
+            for lane, count in lanes
+        ],
+    }
