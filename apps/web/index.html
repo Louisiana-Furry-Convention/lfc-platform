@@ -7,11 +7,11 @@
   <style>
     :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     body { margin: 0; background: #0b0f17; color: #e8eefc; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
     .card { background: #111827; border: 1px solid #22304a; border-radius: 14px; padding: 18px; }
     .row { display: grid; gap: 14px; }
     @media (min-width: 860px) { .row.two { grid-template-columns: 1fr 1fr; } }
-    h1,h2 { margin: 0 0 10px; }
+    h1, h2, h3 { margin: 0 0 10px; }
     .muted { color: #a9b6cf; }
     .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom: 16px; }
     .pill { font-size: 12px; padding: 6px 10px; border-radius: 999px; border: 1px solid #22304a; background:#0f172a; color:#cfe0ff; }
@@ -20,10 +20,12 @@
       width: 100%; padding: 10px 12px; border-radius: 10px;
       border: 1px solid #22304a; background: #0f172a; color: #e8eefc;
       font-size: 14px;
+      box-sizing: border-box;
     }
     button { cursor: pointer; }
     button.primary { background: #2563eb; border-color: #2563eb; }
     button.ghost { background: transparent; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
     .btnrow { display:flex; gap:10px; }
     .btnrow > * { flex: 1; }
     .msg { padding: 10px 12px; border-radius: 10px; border: 1px solid #22304a; background:#0f172a; }
@@ -32,10 +34,13 @@
     .nav { display:flex; gap:10px; flex-wrap: wrap; margin: 12px 0 0; }
     .nav button { width: auto; padding: 8px 12px; }
     .table { width:100%; border-collapse: collapse; font-size: 13px; }
-    .table th, .table td { padding: 10px; border-bottom: 1px solid #22304a; text-align:left; }
+    .table th, .table td { padding: 10px; border-bottom: 1px solid #22304a; text-align:left; vertical-align: top; }
     .kpi { display:flex; gap:12px; flex-wrap:wrap; }
     .kpi .card { flex: 1; min-width: 220px; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+    .scan-ok { background:#052e16; border-color:#16a34a; }
+    .scan-warn { background:#3f2b00; border-color:#f59e0b; }
+    .scan-error { background:#3b0a0a; border-color:#ef4444; }
   </style>
 </head>
 <body>
@@ -55,7 +60,7 @@
       <div class="row">
         <div>
           <label>Email</label>
-          <input id="login-email" type="email" autocomplete="username" placeholder="admin@lfc.local (or real email)" />
+          <input id="login-email" type="email" autocomplete="username" placeholder="admin@lfc.local" />
         </div>
         <div>
           <label>Password</label>
@@ -69,19 +74,19 @@
       </div>
     </section>
 
-    <!-- DASHBOARD -->
+    <!-- APP -->
     <section id="view-app" style="display:none;">
       <div class="card">
         <div class="row">
           <div class="nav" id="nav"></div>
-          <div class="btnrow" style="max-width: 420px;">
+          <div class="btnrow" style="max-width:420px;">
             <button class="ghost" id="btn-refresh">Refresh</button>
             <button class="ghost" id="btn-logout">Logout</button>
           </div>
         </div>
       </div>
 
-      <div style="height: 14px;"></div>
+      <div style="height:14px;"></div>
 
       <!-- HOME -->
       <section id="page-home" class="card" style="display:none;">
@@ -93,67 +98,73 @@
       <!-- STAFF CHECK-IN -->
       <section id="page-checkin" class="card" style="display:none;">
         <h2>Staff Check-in</h2>
-<p class="muted">Paste QR token or scan with camera.</p>
+        <p class="muted">Paste QR token or scan with camera.</p>
 
-<div class="row two">
-  <div>
-    <div class="row">
-      <div class="btnrow">
-        <button class="ghost" id="btn-scan-start">Start camera scan</button>
-        <button class="ghost" id="btn-scan-stop" disabled>Stop</button>
-<div id="cam-diag" class="mono" style="white-space:pre-wrap;"></div>
-      </div>
+        <div class="row two">
+          <div>
+            <div class="row">
+              <div class="btnrow">
+                <button class="ghost" id="btn-scan-start">Start camera scan</button>
+                <button class="ghost" id="btn-scan-stop" disabled>Stop</button>
+              </div>
 
-      <div class="card" id="scan-wrap" style="display:none;">
-        <div class="muted" style="margin-bottom:8px;">Camera preview</div>
-        <video id="scan-video" playsinline autoplay muted
-  style="width:100%; border-radius:12px; border:1px solid #22304a;"></video>
-        <canvas id="scan-canvas" style="display:none;"></canvas>
-        <div class="muted" style="margin-top:8px; font-size:12px;">
-          Tip: Point the camera at the QR code. Good lighting helps.
+              <div id="cam-diag" class="mono" style="white-space:pre-wrap;"></div>
+
+              <div class="card" id="scan-wrap" style="display:none;">
+                <div class="muted" style="margin-bottom:8px;">Camera preview</div>
+                <video id="scan-video" playsinline autoplay muted
+                  style="width:100%; border-radius:12px; border:1px solid #22304a;"></video>
+                <canvas id="scan-canvas" style="display:none;"></canvas>
+                <div class="muted" style="margin-top:8px; font-size:12px;">
+                  Tip: Point the camera at the QR code. Good lighting helps.
+                </div>
+              </div>
+
+              <div>
+                <label>QR Token</label>
+                <input id="checkin-token" placeholder="paste qr_token" />
+              </div>
+
+              <button class="primary" id="btn-checkin">Check in</button>
+
+              <div class="row two">
+                <label style="display:flex; gap:10px; align-items:center;">
+                  <input type="checkbox" id="opt-sound" checked style="width:auto;" />
+                  Sound
+                </label>
+                <label style="display:flex; gap:10px; align-items:center;">
+                  <input type="checkbox" id="opt-vibrate" checked style="width:auto;" />
+                  Vibrate
+                </label>
+              </div>
+
+              <div id="checkin-msg"></div>
+
+              <div id="checkin-panel" class="msg" style="
+                display:none;
+                font-size:40px;
+                font-weight:800;
+                text-align:center;
+                padding:40px;
+                margin-top:20px;
+              "></div>
+            </div>
+          </div>
+
+          <div>
+            <h3 style="margin:0 0 8px;">Recent scans</h3>
+            <table class="table" id="recent-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Status</th>
+                  <th class="mono">Token</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-
-      <div>
-        <label>QR Token</label>
-        <input id="checkin-token" placeholder="paste qr_token" />
-      </div>
-
-      <button class="primary" id="btn-checkin">Check in</button>
-
-      <div class="row two">
-        <label style="display:flex; gap:10px; align-items:center;">
-          <input type="checkbox" id="opt-sound" checked style="width:auto;" />
-          Sound
-        </label>
-        <label style="display:flex; gap:10px; align-items:center;">
-          <input type="checkbox" id="opt-vibrate" checked style="width:auto;" />
-          Vibrate
-        </label>
-      </div>
-
-      <div id="checkin-msg"></div>
-
-      <!-- Big result panel -->
-      <div id="checkin-panel" class="msg" style="
-display:none;
-font-size:40px;
-font-weight:800;
-text-align:center;
-padding:40px;
-margin-top:20px;
-"></div>
-    </div>
-  </div>
-
-  <div>
-    <h3 style="margin:0 0 8px;">Recent scans</h3>
-    <table class="table" id="recent-table">
-      <thead><tr><th>Time</th><th>Status</th><th class="mono">Token</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</div>
       </section>
 
       <!-- ADMIN -->
@@ -172,56 +183,6 @@ margin-top:20px;
             <div id="issue-msg"></div>
           </div>
 
-        <div class="row two">
-  <div class="card">
-    <h3 style="margin-top:0;">Users</h3>
-    <div class="row">
-      <input id="users-q" placeholder="search email (optional)" />
-      <button class="ghost" id="btn-users">Load users</button>
-      <div id="users-msg"></div>
-      <div id="users-table"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;">Live Stats</h3>
-    <button class="ghost" id="btn-stats">Load stats</button>
-    <div style="height:10px;"></div>
-    <div id="stats-msg" class="mono"></div>
-
-    <div style="height:12px;"></div>
-    <h3 style="margin:0 0 8px;">Recent Check-ins</h3>
-    <button class="ghost" id="btn-checkins">Load check-ins</button>
-    <div id="checkins-msg"></div>
-    <div id="checkins-table"></div>
-  </div>
-</div>
-
-<div class="row two">
-  <div class="card">
-    <h3 style="margin-top:0;">Users</h3>
-    <div class="row">
-      <input id="users-q" placeholder="search email (optional)" />
-      <button class="ghost" id="btn-users">Load users</button>
-      <div id="users-msg"></div>
-      <div id="users-table"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin-top:0;">Live Stats</h3>
-    <button class="ghost" id="btn-stats">Load stats</button>
-    <div style="height:10px;"></div>
-    <div id="stats-msg" class="mono"></div>
-
-    <div style="height:12px;"></div>
-    <h3 style="margin:0 0 8px;">Recent Check-ins</h3>
-    <button class="ghost" id="btn-checkins">Load check-ins</button>
-    <div id="checkins-msg"></div>
-    <div id="checkins-table"></div>
-  </div>
-</div>
-
           <div class="card">
             <h3 style="margin-top:0;">Events</h3>
             <button class="ghost" id="btn-events">Load events</button>
@@ -229,498 +190,639 @@ margin-top:20px;
             <div id="events-msg" class="mono"></div>
           </div>
         </div>
+
+        <div style="height:14px;"></div>
+
+        <div class="row two">
+          <div class="card">
+            <h3 style="margin-top:0;">Users</h3>
+            <div class="row">
+              <input id="users-q" placeholder="search email (optional)" />
+              <button class="ghost" id="btn-users">Load users</button>
+              <div id="users-msg"></div>
+              <div id="users-table"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-top:0;">Live Stats</h3>
+            <button class="ghost" id="btn-stats">Load stats</button>
+            <div style="height:10px;"></div>
+            <div id="stats-msg" class="mono"></div>
+
+            <div style="height:12px;"></div>
+            <h3 style="margin:0 0 8px;">Recent Check-ins</h3>
+            <button class="ghost" id="btn-checkins">Load check-ins</button>
+            <div id="checkins-msg"></div>
+            <div id="checkins-table"></div>
+          </div>
+        </div>
       </section>
     </section>
   </div>
 
-<script src="/web/vendor/jsqr.min.js"></script>
+  <script src="/web/vendor/jsqr.min.js"></script>
 
-<script>
-(() => {
-  // -------- Config --------
-  // Use same origin by default. If UI is hosted elsewhere, set API_BASE.
-  const API_BASE = ""; // e.g. "http://192.168.1.143:8000"
-  const LS_KEY = "lfc_auth_v1";
+  <script>
+  (() => {
+    const API_BASE = "";
+    const LS_KEY = "lfc_auth_v1";
 
-  // -------- DOM helpers --------
-  const $ = (id) => document.getElementById(id);
-  const show = (id, on=true) => { $(id).style.display = on ? "" : "none"; };
+    const $ = (id) => document.getElementById(id);
+    const show = (id, on = true) => { $(id).style.display = on ? "" : "none"; };
 
-  function setMsg(el, kind, text) {
-    el.innerHTML = text ? `<div class="msg ${kind}">${text}</div>` : "";
+    function setMsg(el, kind, text) {
+      el.innerHTML = text ? `<div class="msg ${kind}">${text}</div>` : "";
+    }
+
+    function loadAuth() {
+      try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); }
+      catch { return null; }
+    }
+
+    function saveAuth(auth) {
+      localStorage.setItem(LS_KEY, JSON.stringify(auth));
+    }
+
+    function clearAuth() {
+      localStorage.removeItem(LS_KEY);
+    }
+
+    let auth = loadAuth();
+
+    async function api(path, opts = {}) {
+      const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+      if (auth?.token) headers["Authorization"] = `Bearer ${auth.token}`;
+
+      const res = await fetch(API_BASE + path, { ...opts, headers });
+
+      if (res.status === 401) {
+        clearAuth();
+        auth = null;
+        render();
+        throw new Error("Unauthorized (session expired).");
+      }
+
+      const ct = res.headers.get("content-type") || "";
+      const data = ct.includes("application/json") ? await res.json() : await res.text();
+
+      if (!res.ok) {
+        const msg = (data && data.detail)
+          ? (typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail))
+          : (typeof data === "string" ? data : JSON.stringify(data));
+        throw new Error(msg || `HTTP ${res.status}`);
+      }
+
+      return data;
+    }
+
+    const pages = ["home", "checkin", "admin"];
+
+    function go(page) {
+      for (const p of pages) show(`page-${p}`, p === page);
+    }
+
+    function buildNav(role) {
+      const nav = $("nav");
+      nav.innerHTML = "";
+
+      const mkBtn = (label, page, roles) => {
+        if (roles && !roles.includes(role)) return;
+        const b = document.createElement("button");
+        b.className = "ghost";
+        b.textContent = label;
+        b.onclick = () => go(page);
+        nav.appendChild(b);
+      };
+
+      mkBtn("Home", "home");
+      mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
+      mkBtn("Admin", "admin", ["admin"]);
+    }
+
+    function render() {
+      const who = $("whoami");
+
+      if (!auth?.token) {
+        who.textContent = "Not signed in";
+        show("view-login", true);
+        show("view-app", false);
+        return;
+      }
+
+      who.textContent = `${auth.role} • ${auth.email || "user"}`;
+      show("view-login", false);
+      show("view-app", true);
+
+      buildNav(auth.role);
+      go("home");
+      renderHome();
+    }
+
+    async function loadLiveFeed() {
+      try {
+        const rows = await api("/admin/live_feed?limit=20");
+
+        const existing = $("live-arrivals-card");
+        if (existing) existing.remove();
+
+        const table = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Tier</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td>${r.time}</td>
+                  <td>${r.display_name || ""}</td>
+                  <td>${r.email}</td>
+                  <td>${r.tier}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+        const div = document.createElement("div");
+        div.className = "card";
+        div.id = "live-arrivals-card";
+        div.style.minWidth = "100%";
+        div.innerHTML = `<h3>Live Arrivals</h3>${table}`;
+
+        $("kpi").appendChild(div);
+        } catch (e) {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.id = "live-arrivals-card";
+    div.style.minWidth = "100%";
+    div.innerHTML = `
+      <h3>Live Arrivals</h3>
+      <div class="muted">Failed to load: ${e.message}</div>
+    `;
+    $("kpi").appendChild(div);
   }
+    }
 
-  // -------- Auth state --------
-  function loadAuth() {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; }
-  }
-  function saveAuth(auth) {
-    localStorage.setItem(LS_KEY, JSON.stringify(auth));
-  }
-  function clearAuth() {
-    localStorage.removeItem(LS_KEY);
-  }
+    async function renderHome() {
+      const kpi = $("kpi");
+      kpi.innerHTML = "";
 
-  let auth = loadAuth();
+      if (auth?.role !== "admin") {
+        const cards = [
+          { title: "API", value: "Online", sub: "Connected" },
+          { title: "Role", value: auth?.role || "unknown", sub: "Access level" }
+        ];
 
-  // -------- API client --------
-  async function api(path, opts = {}) {
-    const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
-    if (auth?.token) headers["Authorization"] = `Bearer ${auth.token}`;
+        for (const c of cards) {
+          const div = document.createElement("div");
+          div.className = "card";
+          div.innerHTML = `
+            <h3 style="margin:0 0 6px;">${c.title}</h3>
+            <div style="font-size:36px; font-weight:800;">${c.value}</div>
+            <div class="muted">${c.sub}</div>
+          `;
+          kpi.appendChild(div);
+        }
+        return;
+      }
 
-    const res = await fetch(API_BASE + path, { ...opts, headers });
-    if (res.status === 401) {
+      try {
+        const stats = await api("/admin/stats?event_id=lfc-2027");
+
+        const cards = [
+          { title: "Tickets Issued", value: stats.tickets_issued, sub: "Total registrations" },
+          { title: "Checked In", value: stats.checked_in, sub: "Attendees scanned" },
+          { title: "Inside Venue", value: stats.checked_in, sub: "Current occupancy" }
+        ];
+
+        for (const c of cards) {
+          const div = document.createElement("div");
+          div.className = "card";
+          div.innerHTML = `
+            <h3 style="margin:0 0 6px;">${c.title}</h3>
+            <div style="font-size:36px; font-weight:800;">${c.value}</div>
+            <div class="muted">${c.sub}</div>
+          `;
+          kpi.appendChild(div);
+        }
+
+        const breakdown = document.createElement("div");
+        breakdown.className = "card";
+        breakdown.style.minWidth = "100%";
+
+        const issuedByType = stats.issued_by_type || {};
+        const checkedInByType = stats.checked_in_by_type || {};
+        const allTypes = Array.from(new Set([
+          ...Object.keys(issuedByType),
+          ...Object.keys(checkedInByType)
+        ])).sort();
+
+        breakdown.innerHTML = `
+          <h3 style="margin:0 0 10px;">Tier Breakdown</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Tier</th>
+                <th>Issued</th>
+                <th>Checked In</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${allTypes.map(name => `
+                <tr>
+                  <td>${name}</td>
+                  <td>${issuedByType[name] || 0}</td>
+                  <td>${checkedInByType[name] || 0}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+
+        kpi.appendChild(breakdown);
+        await loadLiveFeed();
+      } catch (e) {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <h3>Stats unavailable</h3>
+          <div class="muted">${e.message}</div>
+        `;
+        kpi.appendChild(div);
+      }
+    }
+
+    function pushRecent(status, token) {
+      const tbody = $("recent-table").querySelector("tbody");
+      const time = new Date().toLocaleTimeString();
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${time}</td>
+        <td>${status}</td>
+        <td class="mono">${(token || "").slice(0, 18)}…</td>
+      `;
+      tbody.prepend(row);
+      while (tbody.children.length > 10) tbody.removeChild(tbody.lastChild);
+    }
+
+    function beep(ok = true) {
+      if (!$("opt-sound")?.checked) return;
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = ok ? 880 : 220;
+        g.gain.value = 0.08;
+        o.connect(g);
+        g.connect(ctx.destination);
+        o.start();
+        setTimeout(() => {
+          o.stop();
+          ctx.close();
+        }, ok ? 90 : 150);
+      } catch {}
+    }
+
+    function vibrate(ok = true) {
+      if (!$("opt-vibrate")?.checked) return;
+      if (!navigator.vibrate) return;
+      navigator.vibrate(ok ? [40] : [80, 40, 80]);
+    }
+
+    function updateCamDiag(extra = "") {
+      const lines = [];
+      lines.push(`isSecureContext: ${window.isSecureContext}`);
+      lines.push(`has mediaDevices: ${!!navigator.mediaDevices}`);
+      lines.push(`has getUserMedia: ${!!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)}`);
+      lines.push(`protocol: ${location.protocol}`);
+      lines.push(`host: ${location.host}`);
+      if (extra) lines.push(`note: ${extra}`);
+      $("cam-diag").textContent = lines.join("\n");
+    }
+
+    async function doCheckin(token) {
+      const panel = $("checkin-panel");
+      $("checkin-token").value = token;
+
+      try {
+        const r = await api("/checkin", {
+          method: "POST",
+          body: JSON.stringify({ qr_token: token })
+        });
+
+        const name = r.display_name || r.email || "Attendee";
+        const tier = r.ticket_type_name || r.ticket_type_id || "Ticket";
+        const status = r.status || "ok";
+
+        if (status === "checked_in") {
+          panel.className = "msg scan-ok";
+          panel.innerHTML = `
+            <div>✅ CHECKED IN</div>
+            <div style="font-size:26px;margin-top:8px;">${name}</div>
+            <div style="font-size:18px;" class="mono">${tier}</div>
+          `;
+          beep(true);
+          vibrate(true);
+        } else if (status === "already_checked_in") {
+          panel.className = "msg scan-warn";
+          panel.innerHTML = `
+            <div>⚠ ALREADY CHECKED IN</div>
+            <div style="font-size:26px;margin-top:8px;">${name}</div>
+            <div style="font-size:18px;" class="mono">${tier}</div>
+          `;
+          beep(false);
+          vibrate(false);
+        } else {
+          panel.className = "msg";
+          panel.innerHTML = `
+            <div>${status}</div>
+            <div style="font-size:18px;" class="mono">${tier}</div>
+          `;
+        }
+
+        panel.style.display = "";
+        setMsg($("checkin-msg"), status === "checked_in" ? "ok" : "bad", `Result: ${status}`);
+        pushRecent(status, token);
+      } catch (e) {
+        panel.className = "msg scan-error";
+        panel.innerHTML = `
+          <div>❌ INVALID BADGE</div>
+          <div style="font-size:18px">${e.message}</div>
+        `;
+        panel.style.display = "";
+        setMsg($("checkin-msg"), "bad", `Check-in failed: ${e.message}`);
+        pushRecent("error", token);
+        beep(false);
+        vibrate(false);
+      }
+
+      setTimeout(() => {
+        panel.style.display = "none";
+        $("checkin-token").value = "";
+      }, 1500);
+    }
+
+    // -------- Actions --------
+
+    $("btn-login").onclick = async () => {
+      setMsg($("login-msg"), "", "");
+      const email = $("login-email").value.trim();
+      const password = $("login-password").value;
+
+      try {
+        const r = await api("/auth/login", {
+          method: "POST",
+          body: JSON.stringify({ email, password })
+        });
+
+        auth = { token: r.access_token, role: r.role, email };
+        saveAuth(auth);
+        setMsg($("login-msg"), "ok", "Logged in.");
+        render();
+      } catch (e) {
+        setMsg($("login-msg"), "bad", `Login failed: ${e.message}`);
+      }
+    };
+
+    $("btn-clear").onclick = () => {
+      $("login-email").value = "";
+      $("login-password").value = "";
+      setMsg($("login-msg"), "", "");
+    };
+
+    $("btn-logout").onclick = () => {
       clearAuth();
       auth = null;
       render();
-      throw new Error("Unauthorized (session expired).");
-    }
-    const ct = res.headers.get("content-type") || "";
-    const data = ct.includes("application/json") ? await res.json() : await res.text();
-    if (!res.ok) {
-      const msg = (data && data.detail) ? JSON.stringify(data.detail) : (typeof data === "string" ? data : JSON.stringify(data));
-      throw new Error(msg || `HTTP ${res.status}`);
-    }
-    return data;
-  }
-
-  // -------- Navigation --------
-  const pages = ["home", "checkin", "admin"];
-  function go(page) {
-    for (const p of pages) show(`page-${p}`, p === page);
-  }
-
-  function buildNav(role) {
-    const nav = $("nav");
-    nav.innerHTML = "";
-
-    const mkBtn = (label, page, roles) => {
-      if (roles && !roles.includes(role)) return;
-      const b = document.createElement("button");
-      b.className = "ghost";
-      b.textContent = label;
-      b.onclick = () => go(page);
-      nav.appendChild(b);
     };
 
-    mkBtn("Home", "home");
-    mkBtn("Staff Check-in", "checkin", ["admin", "staff"]);
-    mkBtn("Admin", "admin", ["admin"]);
-  }
+    $("btn-refresh").onclick = () => render();
 
-  // -------- Render --------
-  function render() {
-    const who = $("whoami");
-    if (!auth?.token) {
-      who.textContent = "Not signed in";
-      show("view-login", true);
-      show("view-app", false);
-      return;
-    }
+    $("btn-checkin").onclick = async () => {
+      const token = $("checkin-token").value.trim();
+      if (!token) return setMsg($("checkin-msg"), "bad", "Paste a qr_token first.");
+      await doCheckin(token);
+    };
 
-    who.textContent = `${auth.role} • ${auth.email || "user"}`;
-    show("view-login", false);
-    show("view-app", true);
+    $("btn-issue").onclick = async () => {
+      const email = $("issue-email").value.trim();
+      if (!email) return setMsg($("issue-msg"), "bad", "Enter a valid email (e.g. test@example.com).");
 
-    buildNav(auth.role);
-    go("home");
+      try {
+        const r = await api("/tickets/issue_test", {
+          method: "POST",
+          body: JSON.stringify({ email })
+        });
 
-    renderHome();
-  }
+        setMsg(
+          $("issue-msg"),
+          "ok",
+          `Issued. ticket_id=${r.ticket_id}<br><span class="mono">qr_token=${r.qr_token}</span>`
+        );
 
-  async function renderHome() {
-    const kpi = $("kpi");
-    kpi.innerHTML = "";
+        $("checkin-token").value = r.qr_token;
+      } catch (e) {
+        setMsg($("issue-msg"), "bad", `Issue failed: ${e.message}`);
+      }
+    };
 
-    // Lightweight KPIs (no special endpoint required)
-    const cards = [
-      { title: "API", value: "Online", sub: "Connected" },
-      { title: "Role", value: auth.role, sub: "Access level" },
-    ];
+    $("btn-events").onclick = async () => {
+      try {
+        const r = await api("/events");
+        $("events-msg").textContent = JSON.stringify(r, null, 2);
+      } catch (e) {
+        $("events-msg").textContent = `Failed: ${e.message}`;
+      }
+    };
 
-    for (const c of cards) {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `<h3 style="margin:0 0 6px;">${c.title}</h3>
-        <div style="font-size:26px; font-weight:700;">${c.value}</div>
-        <div class="muted">${c.sub}</div>`;
-      kpi.appendChild(div);
-    }
-  }
+    $("btn-users").onclick = async () => {
+      const q = $("users-q").value.trim();
 
-  // -------- Actions --------
-$("btn-checkin").onclick = async () => {
-  const token = $("checkin-token").value.trim();
-  if (!token) return;
+      try {
+        const rows = await api(`/admin/users?q=${encodeURIComponent(q)}&limit=50`);
+        setMsg($("users-msg"), "ok", `Loaded ${rows.length} users.`);
 
-  const panel = $("checkin-panel");
+        $("users-table").innerHTML = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Active</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(u => `
+                <tr>
+                  <td>${u.email}</td>
+                  <td class="mono">${u.role}</td>
+                  <td>${u.is_active ? "yes" : "no"}</td>
+                  <td>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <button class="ghost" data-id="${u.id}" data-role="staff">Make staff</button>
+                      <button class="ghost" data-id="${u.id}" data-role="checkin">Make checkin</button>
+                      <button class="ghost" data-id="${u.id}" data-role="admin">Make admin</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
 
-  try {
-    const r = await api("/checkin", {
-      method: "POST",
-      body: JSON.stringify({ qr_token: token })
-    });
+        $("users-table").querySelectorAll("button[data-id]").forEach(btn => {
+          btn.onclick = async () => {
+            const user_id = btn.getAttribute("data-id");
+            const role = btn.getAttribute("data-role");
 
-    const name = r.display_name || r.email || "Attendee";
-    const tier = r.ticket_type_name || r.ticket_type_id;
+            try {
+              await api("/admin/promote", {
+                method: "POST",
+                body: JSON.stringify({ user_id, role, is_active: true })
+              });
+              setMsg($("users-msg"), "ok", `Updated role to ${role}. Reloading…`);
+              $("btn-users").click();
+            } catch (e) {
+              setMsg($("users-msg"), "bad", `Promote failed: ${e.message}`);
+            }
+          };
+        });
+      } catch (e) {
+        setMsg($("users-msg"), "bad", `Failed: ${e.message}`);
+      }
+    };
 
-    if (r.status === "checked_in") {
+    $("btn-stats").onclick = async () => {
+      try {
+        const r = await api("/admin/stats?event_id=lfc-2027");
+        $("stats-msg").textContent = JSON.stringify(r, null, 2);
+      } catch (e) {
+        $("stats-msg").textContent = `Failed: ${e.message}`;
+      }
+    };
 
-      panel.className = "msg scan-ok";
-      panel.innerHTML = `
-        <div>✅ CHECKED IN</div>
-        <div style="font-size:26px;margin-top:8px;">${name}</div>
-        <div style="font-size:18px;" class="mono">${tier}</div>
-      `;
+    $("btn-checkins").onclick = async () => {
+      try {
+        const rows = await api("/admin/checkins?event_id=lfc-2027&limit=50");
+        setMsg($("checkins-msg"), "ok", `Loaded ${rows.length} check-ins.`);
 
-    } else if (r.status === "already_checked_in") {
+        $("checkins-table").innerHTML = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Email</th>
+                <th>Ticket Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr>
+                  <td>${r.created_at}</td>
+                  <td>${r.email}</td>
+                  <td class="mono">${r.ticket_type_id}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      } catch (e) {
+        setMsg($("checkins-msg"), "bad", `Failed: ${e.message}`);
+      }
+    };
 
-      panel.className = "msg scan-warn";
-      panel.innerHTML = `
-        <div>⚠ ALREADY CHECKED IN</div>
-        <div style="font-size:26px;margin-top:8px;">${name}</div>
-        <div style="font-size:18px;" class="mono">${tier}</div>
-      `;
+    // -------- Camera QR Scanner --------
 
-    }
+    let scanStream = null;
+    let scanInterval = null;
+    let scanLocked = false;
+    let lastScanValue = "";
+    let lastScanAt = 0;
 
-  } catch (e) {
+    $("btn-scan-start").onclick = async () => {
+      try {
+        scanStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        });
 
-    panel.className = "msg scan-error";
-    panel.innerHTML = `
-      <div>❌ INVALID BADGE</div>
-      <div style="font-size:18px">${e.message}</div>
-    `;
+        const video = $("scan-video");
+        video.srcObject = scanStream;
+        video.muted = true;
+        video.autoplay = true;
+        await video.play();
 
-  }
+        $("scan-wrap").style.display = "";
+        $("btn-scan-start").disabled = true;
+        $("btn-scan-stop").disabled = false;
 
-  panel.style.display = "";
+        const canvas = $("scan-canvas");
+        const ctx = canvas.getContext("2d");
 
-  // auto reset for next scan
-  setTimeout(() => {
-    panel.style.display = "none";
-    $("checkin-token").value = "";
-  }, 1500);
-};
+        scanInterval = setInterval(() => {
+          if (scanLocked) return;
+          if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
-  $("btn-clear").onclick = () => {
-    $("login-email").value = "";
-    $("login-password").value = "";
-    setMsg($("login-msg"), "", "");
-  };
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  $("btn-logout").onclick = () => {
-    clearAuth();
-    auth = null;
-    render();
-  };
+          const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(image.data, canvas.width, canvas.height);
 
-  $("btn-refresh").onclick = () => render();
+          if (code && code.data) {
+            const now = Date.now();
+            const value = code.data.trim();
 
-  // Staff check-in
-  const recent = [];
-  function pushRecent(status, token) {
-    const time = new Date().toLocaleTimeString();
-    recent.unshift({ time, status, token });
-    if (recent.length > 10) recent.pop();
-    const tbody = $("recent-table").querySelector("tbody");
-    tbody.innerHTML = recent.map(r =>
-      `<tr><td>${r.time}</td><td>${r.status}</td><td class="mono">${(r.token||"").slice(0,18)}…</td></tr>`
-    ).join("");
-  }
+            if (value === lastScanValue && (now - lastScanAt) < 2500) return;
 
-  $("btn-checkin").onclick = async () => {
-    const token = $("checkin-token").value.trim();
-    if (!token) return setMsg($("checkin-msg"), "bad", "Paste a qr_token first.");
+            lastScanValue = value;
+            lastScanAt = now;
+            scanLocked = true;
 
-    try {
-      const r = await api("/checkin", {
-        method: "POST",
-        body: JSON.stringify({ qr_token: token })
-      });
-      const status = r.status || "ok";
-      setMsg($("checkin-msg"), status === "checked_in" ? "ok" : "bad", `Result: ${status}`);
-      pushRecent(status, token);
-    } catch (e) {
-      setMsg($("checkin-msg"), "bad", `Check-in failed: ${e.message}`);
-      pushRecent("error", token);
-    }
-  };
+            $("checkin-token").value = value;
+            doCheckin(value).finally(() => {
+              setTimeout(() => {
+                scanLocked = false;
+              }, 1800);
+            });
+          }
+        }, 200);
+      } catch (e) {
+        updateCamDiag(e.name ? `${e.name}: ${e.message}` : String(e));
+      }
+    };
 
-  // Admin: issue test ticket
-  $("btn-issue").onclick = async () => {
-    const email = $("issue-email").value.trim();
-    if (!email) return setMsg($("issue-msg"), "bad", "Enter a valid email (e.g. test@example.com).");
+    $("btn-scan-stop").onclick = () => {
+      if (scanInterval) clearInterval(scanInterval);
+      scanInterval = null;
 
-    try {
-      const r = await api("/tickets/issue_test", {
-        method: "POST",
-        body: JSON.stringify({ email })
-      });
-      setMsg($("issue-msg"), "ok",
-        `Issued. ticket_id=${r.ticket_id}<br><span class="mono">qr_token=${r.qr_token}</span>`
-      );
-      // convenience: auto-fill check-in token
-      $("checkin-token").value = r.qr_token;
-    } catch (e) {
-      setMsg($("issue-msg"), "bad", `Issue failed: ${e.message}`);
-    }
-  };
-
-  // Admin: events
-  $("btn-events").onclick = async () => {
-    try {
-      const r = await api("/events");
-      $("events-msg").textContent = JSON.stringify(r, null, 2);
-    } catch (e) {
-      $("events-msg").textContent = `Failed: ${e.message}`;
-    }
-  };
-
-$("btn-users").onclick = async () => {
-  const q = $("users-q").value.trim();
-  try {
-    const rows = await api(`/admin/users?q=${encodeURIComponent(q)}&limit=50`);
-    setMsg($("users-msg"), "ok", `Loaded ${rows.length} users.`);
-    $("users-table").innerHTML = `
-      <table class="table">
-        <thead><tr><th>Email</th><th>Role</th><th>Active</th><th>Action</th></tr></thead>
-        <tbody>
-          ${rows.map(u => `
-            <tr>
-              <td>${u.email}</td>
-              <td class="mono">${u.role}</td>
-              <td>${u.is_active ? "yes" : "no"}</td>
-              <td>
-                <div style="display:flex; gap:8px;">
-                  <button class="ghost" data-id="${u.id}" data-role="staff">Make staff</button>
-                  <button class="ghost" data-id="${u.id}" data-role="admin">Make admin</button>
-                </div>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-
-    $("users-table").querySelectorAll("button[data-id]").forEach(btn => {
-      btn.onclick = async () => {
-        const userId = btn.getAttribute("data-id");
-        const role = btn.getAttribute("data-role");
-        try {
-          await api(`/admin/users/${userId}/promote`, {
-            method: "POST",
-            body: JSON.stringify({ role })
-          });
-          setMsg($("users-msg"), "ok", `Updated role to ${role}. Reloading…`);
-          $("btn-users").click();
-        } catch (e) {
-          setMsg($("users-msg"), "bad", `Promote failed: ${e.message}`);
-        }
-      };
-    });
-  } catch (e) {
-    setMsg($("users-msg"), "bad", `Failed: ${e.message}`);
-  }
-};
-
-$("btn-stats").onclick = async () => {
-  try {
-    const r = await api("/admin/stats?event_id=lfc-2027");
-    $("stats-msg").textContent = JSON.stringify(r, null, 2);
-  } catch (e) {
-    $("stats-msg").textContent = `Failed: ${e.message}`;
-  }
-};
-
-$("btn-checkins").onclick = async () => {
-  try {
-    const rows = await api("/admin/checkins?limit=50");
-    setMsg($("checkins-msg"), "ok", `Loaded ${rows.length} check-ins.`);
-    $("checkins-table").innerHTML = `
-      <table class="table">
-        <thead><tr><th>Time</th><th>Email</th><th>Ticket Type</th><th>Event</th></tr></thead>
-        <tbody>
-          ${rows.map(r => `
-            <tr>
-              <td>${r.created_at}</td>
-              <td>${r.email}</td>
-              <td class="mono">${r.ticket_type_id}</td>
-              <td class="mono">${r.event_id}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (e) {
-    setMsg($("checkins-msg"), "bad", `Failed: ${e.message}`);
-  }
-};
-
-$("btn-users").onclick = async () => {
-  const q = $("users-q").value.trim();
-  try {
-    const rows = await api(`/admin/users?q=${encodeURIComponent(q)}&limit=50`);
-    setMsg($("users-msg"), "ok", `Loaded ${rows.length} users.`);
-
-    $("users-table").innerHTML = `
-      <table class="table">
-        <thead><tr><th>Email</th><th>Role</th><th>Active</th><th>Action</th></tr></thead>
-        <tbody>
-          ${rows.map(u => `
-            <tr>
-              <td>${u.email}</td>
-              <td class="mono">${u.role}</td>
-              <td>${u.is_active ? "yes" : "no"}</td>
-              <td>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                  <button class="ghost" data-id="${u.id}" data-role="staff">Make staff</button>
-                  <button class="ghost" data-id="${u.id}" data-role="checkin">Make checkin</button>
-                  <button class="ghost" data-id="${u.id}" data-role="admin">Make admin</button>
-                </div>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-
-    $("users-table").querySelectorAll("button[data-id]").forEach(btn => {
-      btn.onclick = async () => {
-        const user_id = btn.getAttribute("data-id");
-        const role = btn.getAttribute("data-role");
-        try {
-          await api(`/admin/promote`, {
-            method: "POST",
-            body: JSON.stringify({ user_id, role, is_active: true })
-          });
-          setMsg($("users-msg"), "ok", `Updated role to ${role}. Reloading…`);
-          $("btn-users").click();
-        } catch (e) {
-          setMsg($("users-msg"), "bad", `Promote failed: ${e.message}`);
-        }
-      };
-    });
-  } catch (e) {
-    setMsg($("users-msg"), "bad", `Failed: ${e.message}`);
-  }
-};
-
-$("btn-stats").onclick = async () => {
-  try {
-    const r = await api("/admin/stats?event_id=lfc-2027");
-    $("stats-msg").textContent = JSON.stringify(r, null, 2);
-  } catch (e) {
-    $("stats-msg").textContent = `Failed: ${e.message}`;
-  }
-};
-
-$("btn-checkins").onclick = async () => {
-  try {
-    const rows = await api("/admin/checkins?event_id=lfc-2027&limit=50");
-    setMsg($("checkins-msg"), "ok", `Loaded ${rows.length} check-ins.`);
-    $("checkins-table").innerHTML = `
-      <table class="table">
-        <thead><tr><th>Time</th><th>Email</th><th>Ticket Type</th></tr></thead>
-        <tbody>
-          ${rows.map(r => `
-            <tr>
-              <td>${r.created_at}</td>
-              <td>${r.email}</td>
-              <td class="mono">${r.ticket_type_id}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
-  } catch (e) {
-    setMsg($("checkins-msg"), "bad", `Failed: ${e.message}`);
-  }
-};
-
-function updateCamDiag(extra = "") {
-  const lines = [];
-  lines.push(`isSecureContext: ${window.isSecureContext}`);
-  lines.push(`has mediaDevices: ${!!navigator.mediaDevices}`);
-  lines.push(`has getUserMedia: ${!!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)}`);
-  lines.push(`protocol: ${location.protocol}`);
-  lines.push(`host: ${location.host}`);
-  if (extra) lines.push(`note: ${extra}`);
-  const el = document.getElementById("cam-diag");
-  if (el) el.textContent = lines.join("\n");
-}
-updateCamDiag();
-
-// -------- Camera QR Scanner --------
-let scanStream = null;
-let scanInterval = null;
-
-$("btn-scan-start").onclick = async () => {
-
-  try {
-
-    scanStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" }
-    });
-
-    const video = $("scan-video");
-    video.srcObject = scanStream;
-
-    $("scan-wrap").style.display = "";
-    $("btn-scan-start").disabled = true;
-    $("btn-scan-stop").disabled = false;
-
-    const canvas = $("scan-canvas");
-    const ctx = canvas.getContext("2d");
-
-    scanInterval = setInterval(() => {
-
-      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-      const code = jsQR(image.data, canvas.width, canvas.height);
-
-      if (code && code.data) {
-
-        $("checkin-token").value = code.data;
-
-        $("btn-checkin").click();
-
+      if (scanStream) {
+        scanStream.getTracks().forEach(t => t.stop());
+        scanStream = null;
       }
 
-    }, 250);
+      scanLocked = false;
+      $("scan-wrap").style.display = "none";
+      $("btn-scan-start").disabled = false;
+      $("btn-scan-stop").disabled = true;
+    };
 
-  } catch (e) {
+    updateCamDiag();
 
-    updateCamDiag(e.message);
+    setInterval(() => {
+      if (auth?.token) renderHome();
+    }, 5000);
 
-  }
-
-};
-
-$("btn-scan-stop").onclick = () => {
-
-  if (scanInterval) clearInterval(scanInterval);
-
-  if (scanStream) {
-    scanStream.getTracks().forEach(t => t.stop());
-  }
-
-  $("scan-wrap").style.display = "none";
-  $("btn-scan-start").disabled = false;
-  $("btn-scan-stop").disabled = true;
-
-};
-
-  // Boot
-  render();
-})();
-</script>
+    render();
+  })();
+  </script>
 </body>
 </html>
