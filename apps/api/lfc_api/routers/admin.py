@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from lfc_api.db.session import get_db
@@ -78,7 +79,6 @@ def promote_user(
     db.commit()
     return {"ok": True, "user_id": u.id, "role": u.role, "is_active": u.is_active}
 
-
 @router.get("/checkins")
 def recent_checkins(
     event_id: str = "lfc-2027",
@@ -93,7 +93,7 @@ def recent_checkins(
         .join(Ticket, Ticket.id == CheckIn.ticket_id)
         .join(User, User.id == Ticket.user_id)
         .filter(Ticket.event_id == event_id)
-        .order_by(CheckIn.created_at.desc())
+        .order_by(CheckIn.created_at.desc(), CheckIn.id.desc())
         .limit(limit)
         .all()
     )
@@ -101,7 +101,7 @@ def recent_checkins(
     return [
         {
             "checkin_id": ci.id,
-            "created_at": str(ci.created_at),
+            "created_at": ci.created_at.isoformat() if ci.created_at else None,
             "ticket_id": t.id,
             "event_id": t.event_id,
             "ticket_type_id": t.ticket_type_id,
@@ -211,14 +211,14 @@ def live_feed(
         .join(User, User.id == Ticket.user_id)
         .join(TicketType, TicketType.id == Ticket.ticket_type_id)
         .filter(Ticket.event_id == event_id)
-        .order_by(CheckIn.id.desc())
+        .order_by(CheckIn.created_at.desc(), CheckIn.id.desc())
         .limit(limit)
         .all()
     )
 
     return [
         {
-            "time": ci.id,
+            "time": ci.created_at.isoformat() if ci.created_at else None,
             "email": u.email,
             "display_name": getattr(u, "display_name", ""),
             "tier": tt.name,
@@ -226,3 +226,99 @@ def live_feed(
         }
         for ci, t, u, tt in rows
     ]
+@router.get("/lane_analytics")
+def lane_analytics(
+    event_id: str = "lfc-2027",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    now = datetime.utcnow()
+    last_5 = now - timedelta(minutes=5)
+    last_60 = now - timedelta(minutes=60)
+
+    base = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+    )
+
+    total = base.count()
+
+    last_5_count = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+        .filter(CheckIn.created_at >= last_5)
+        .count()
+    )
+
+    last_60_count = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+        .filter(CheckIn.created_at >= last_60)
+        .count()
+    )
+
+    lanes = (
+        db.query(
+            CheckIn.lane,
+            func.count(CheckIn.id).label("count"),
+        )
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+        .group_by(CheckIn.lane)
+        .order_by(func.count(CheckIn.id).desc())
+        .all()
+    )
+
+    return {
+        "event_id": event_id,
+        "total_checkins": total,
+        "last_5_min": last_5_count,
+        "last_60_min": last_60_count,
+        "lanes": [
+            {
+                "lane": lane or "main",
+                "count": count,
+            }
+            for lane, count in lanes
+        ],
+    }
+@router.get("/db/table")
+def db_table(
+    table: str,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    allowed = {
+        "users": User,
+        "tickets": Ticket,
+        "checkins": CheckIn,
+        "ticket_types": TicketType,
+    }
+
+    model = allowed.get(table)
+    if not model:
+        raise HTTPException(status_code=400, detail="invalid table")
+
+    rows = db.query(model).limit(limit).all()
+
+    result = []
+    for r in rows:
+        row = {}
+        for c in r.__table__.columns:
+            v = getattr(r, c.name)
+            row[c.name] = str(v) if v is not None else None
+        result.append(row)
+
+    return {
+        "table": table,
+        "count": len(result),
+        "rows": result
+    }

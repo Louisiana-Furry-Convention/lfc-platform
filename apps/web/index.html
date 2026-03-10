@@ -217,6 +217,17 @@
             <div id="checkins-table"></div>
           </div>
         </div>
+
+         <div class="card">
+  <h3>DB Viewer</h3>
+
+  <button onclick="loadDBTable('users')">Users</button>
+  <button onclick="loadDBTable('tickets')">Tickets</button>
+  <button onclick="loadDBTable('checkins')">Check-ins</button>
+  <button onclick="loadDBTable('ticket_types')">Ticket Types</button>
+
+  <div id="db-view"></div>
+</div>
       </section>
     </section>
   </div>
@@ -249,6 +260,42 @@
     }
 
     let auth = loadAuth();
+
+    function formatArrivalTime(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+window.loadDBTable = async function(name) {
+  try {
+    const rows = await api(`/admin/db/table?table=${name}&limit=50`);
+
+    const cols = rows.rows.length ? Object.keys(rows.rows[0]) : [];
+
+    const table = `
+      <table class="table">
+        <thead>
+          <tr>${cols.map(c => `<th>${c}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${rows.rows.map(r => `
+            <tr>${cols.map(c => `<td>${r[c] ?? ""}</td>`).join("")}</tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    $("db-view").innerHTML = table;
+  } catch (e) {
+    $("db-view").innerHTML = `<div class="bad">Failed: ${e.message}</div>`;
+  }
+}
 
     async function api(path, opts = {}) {
       const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
@@ -319,55 +366,129 @@
       renderHome();
     }
 
-    async function loadLiveFeed() {
-      try {
-        const rows = await api("/admin/live_feed?limit=20");
+async function loadLaneAnalytics() {
+  try {
+    const data = await api("/admin/lane_analytics?event_id=lfc-2027");
+    const topLane = (data.lanes && data.lanes.length) ? data.lanes[0] : null;
 
-        const existing = $("live-arrivals-card");
-        if (existing) existing.remove();
+    const html = `
+      <div class="card" id="lane-analytics-card">
+        <h3>Lane Analytics</h3>
+        <table class="table">
+          <tbody>
+            <tr><td>Total Check-ins</td><td>${data.total_checkins ?? 0}</td></tr>
+            <tr><td>Last 5 Minutes</td><td>${data.last_5_min ?? 0}</td></tr>
+            <tr><td>Last 60 Minutes</td><td>${data.last_60_min ?? 0}</td></tr>
+            <tr><td>Top Lane</td><td>${topLane ? `${topLane.lane} (${topLane.count})` : "-"}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    `;
 
-        const table = `
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Tier</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(r => `
-                <tr>
-                  <td>${r.time}</td>
-                  <td>${r.display_name || ""}</td>
-                  <td>${r.email}</td>
-                  <td>${r.tier}</td>
-                </tr>
-              `).join("")}
-            </tbody>
-          </table>
-        `;
+    const existing = $("lane-analytics-card");
+    if (existing) existing.remove();
 
-        const div = document.createElement("div");
-        div.className = "card";
-        div.id = "live-arrivals-card";
-        div.style.minWidth = "100%";
-        div.innerHTML = `<h3>Live Arrivals</h3>${table}`;
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.appendChild(Object.assign(document.createElement("div"), { outerHTML: html }));
+  } catch (e) {
+    console.error("lane analytics failed", e);
+  }
+}
 
-        $("kpi").appendChild(div);
-        } catch (e) {
+    function formatArrivalTime(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+async function loadLaneAnalytics() {
+  try {
+    const data = await api("/admin/lane_analytics?event_id=lfc-2027");
+    const topLane = (data.lanes && data.lanes.length) ? data.lanes[0] : null;
+
+    const existing = $("lane-analytics-card");
+    if (existing) existing.remove();
+
     const div = document.createElement("div");
+    div.id = "lane-analytics-card";
     div.className = "card";
+    div.innerHTML = `
+      <h3>Lane Analytics</h3>
+      <table class="table">
+        <tbody>
+          <tr><td>Total Check-ins</td><td>${data.total_checkins ?? 0}</td></tr>
+          <tr><td>Last 5 Minutes</td><td>${data.last_5_min ?? 0}</td></tr>
+          <tr><td>Last 60 Minutes</td><td>${data.last_60_min ?? 0}</td></tr>
+          <tr><td>Top Lane</td><td>${topLane ? `${topLane.lane} (${topLane.count})` : "-"}</td></tr>
+        </tbody>
+      </table>
+    `;
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.appendChild(div);
+  } catch (e) {
+    console.error("lane analytics failed", e);
+  }
+}
+
+async function loadLiveFeed() {
+  try {
+    const rows = await api("/admin/live_feed?limit=20");
+
+    const existing = $("live-arrivals-card");
+    if (existing) existing.remove();
+
+    const table = `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>${formatArrivalTime(r.time)}</td>
+              <td>${r.display_name || ""}</td>
+              <td>${r.email || ""}</td>
+              <td>${r.tier || ""}</td>
+            </tr>
+          `).join("")}
+        </tbody>x
+      </table>
+    `;
+
+    const div = document.createElement("div");
     div.id = "live-arrivals-card";
-    div.style.minWidth = "100%";
+    div.className = "card";
     div.innerHTML = `
       <h3>Live Arrivals</h3>
-      <div class="muted">Failed to load: ${e.message}</div>
+      ${table}
     `;
-    $("kpi").appendChild(div);
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.appendChild(div);
+  } catch (e) {
+    const existing = $("live-arrivals-card");
+    if (existing) existing.remove();
+
+    const div = document.createElement("div");
+    div.id = "live-arrivals-card";
+    div.className = "card";
+    div.innerHTML = `<h3>Live Arrivals</h3><div class="bad">Failed to load: ${e.message}</div>`;
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.appendChild(div);
   }
-    }
+}
 
     async function renderHome() {
       const kpi = $("kpi");
@@ -446,7 +567,9 @@
         `;
 
         kpi.appendChild(breakdown);
-        await loadLiveFeed();
+        if (typeof loadHomeStats === "function") await loadHomeStats();
+        if (typeof loadLiveFeed === "function") await loadLiveFeed();
+        if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics();
       } catch (e) {
         const div = document.createElement("div");
         div.className = "card";
@@ -457,6 +580,17 @@
         kpi.appendChild(div);
       }
     }
+
+function formatArrivalTime(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
 
     function pushRecent(status, token) {
       const tbody = $("recent-table").querySelector("tbody");
@@ -519,6 +653,7 @@
 
         const name = r.display_name || r.email || "Attendee";
         const tier = r.ticket_type_name || r.ticket_type_id || "Ticket";
+        const when = formatArrivalTime(r.created_at);        
         const status = r.status || "ok";
 
         if (status === "checked_in") {
@@ -817,9 +952,11 @@
 
     updateCamDiag();
 
-    setInterval(() => {
-      if (auth?.token) renderHome();
-    }, 5000);
+setInterval(async () => {
+  if (!auth?.token) return;
+  try { if (typeof loadLiveFeed === "function") await loadLiveFeed(); } catch (e) {}
+  try { if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics(); } catch (e) {}
+}, 15000);
 
     render();
   })();
