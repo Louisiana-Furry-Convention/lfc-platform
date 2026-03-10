@@ -105,6 +105,12 @@
   <div id="my-tickets"></div>
 </section>
 
+    <!-- My Badge  -->
+
+<section id="page-badge" class="card" style="display:none;">
+  <div id="badge-view"></div>
+</section>
+
       <!-- STAFF CHECK-IN -->
       <section id="page-checkin" class="card" style="display:none;">
         <h2>Staff Check-in</h2>
@@ -418,11 +424,12 @@ window.loadDBTable = async function(name) {
       return data;
     };
 
-    const pages = ["home", "tickets", "checkin", "admin"];
+    const pages = ["home", "tickets", "badge", "checkin", "admin"];
 
     function go(page) {
   for (const p of pages) show(`page-${p}`, p === page);
   if (page === "tickets") loadMyTickets();
+if (page === "badge") loadMyBadge();
 }
 
     function buildNav(role) {
@@ -440,7 +447,8 @@ window.loadDBTable = async function(name) {
 
       mkBtn("Home", "home");
       mkBtn("My Tickets", "tickets");
-      mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
+mkBtn("My Badge", "badge");      
+mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
       mkBtn("Admin", "admin", ["admin"]);
     }
 
@@ -462,6 +470,30 @@ window.loadDBTable = async function(name) {
       go("home");
       renderHome();
     }
+
+async function loadMyBadge() {
+  try {
+    const rows = await api("/me/tickets");
+
+    if (!rows.length) {
+      document.getElementById("badge-view").innerHTML = "No ticket yet.";
+      return;
+    }
+
+    const t = rows[0];
+
+    document.getElementById("badge-view").innerHTML = `
+      <div style="text-align:center; padding:20px;">
+        <h1 style="font-size:42px; margin-bottom:10px;">${t.ticket_type_name || t.ticket_type_id}</h1>
+        <div style="font-size:18px; margin-bottom:16px;">Status: ${t.status}</div>
+        <img src="/tickets/qr/${t.qr_token}" style="max-width:320px; width:100%;" />
+        <div class="mono" style="margin-top:12px;">${t.qr_token}</div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById("badge-view").innerHTML = `Failed: ${e.message}`;
+  }
+}
 
 async function loadLaneAnalytics() {
   try {
