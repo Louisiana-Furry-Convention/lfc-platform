@@ -11,17 +11,12 @@ from lfc_api.models.user import User
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 class SignupIn(BaseModel):
-    email: str
+    email: EmailStr
     password: str
     display_name: str = ""
 
 class LoginIn(BaseModel):
     email: str
-    password: str
-
-class SignupIn(BaseModel):
-    email: EmailStr
-    display_name: str
     password: str
 
 @router.post("/signup")
@@ -52,7 +47,17 @@ def login(data: LoginIn, db: Session = Depends(get_db)):
     if not u.is_active:
         raise HTTPException(status_code=403, detail="Inactive user")
     token = create_access_token(subject=u.id, role=u.role)
-    return {"access_token": token, "token_type": "bearer", "role": u.role}
+    return {
+    "access_token": token,
+    "token_type": "bearer",
+    "role": u.role,
+    "user": {
+        "id": u.id,
+        "email": u.email,
+        "display_name": u.display_name,
+        "role": u.role,
+    },
+}
 
 @router.get("/me")
 def me(u: User = Depends(get_current_user)):

@@ -93,7 +93,23 @@
         <h2>Dashboard</h2>
         <p class="muted">Role-based quick actions.</p>
         <div class="kpi" id="kpi"></div>
+        <div class="card" id="buy-card">
+  <h3>Buy Ticket</h3>
+  <div id="ticket-list"></div>
+</div>
       </section>
+
+    <!-- My Tickets -->
+<section id="page-tickets" class="card" style="display:none;">
+  <h2>My Tickets</h2>
+  <div id="my-tickets"></div>
+</section>
+
+    <!-- My Badge  -->
+
+<section id="page-badge" class="card" style="display:none;">
+  <div id="badge-view"></div>
+</section>
 
       <!-- STAFF CHECK-IN -->
       <section id="page-checkin" class="card" style="display:none;">
@@ -235,6 +251,63 @@
   <script src="/web/vendor/jsqr.min.js"></script>
 
   <script>
+async function loadMyTickets() {
+  try {
+    const rows = await api("/me/tickets");
+
+    if (!rows.length) {
+      document.getElementById("my-tickets").innerHTML = "No tickets yet.";
+      return;
+    }
+
+    document.getElementById("my-tickets").innerHTML = rows.map(t => `
+      <div class="card">
+        <h3>${t.ticket_type_name || t.ticket_type_id}</h3>
+        <div>Status: ${t.status}</div>
+<img src="/tickets/qr/${t.qr_token}" width="180">        
+<div class="mono">${t.qr_token}</div>
+      </div>
+    `).join("");
+  } catch (e) {
+    document.getElementById("my-tickets").innerHTML = `Failed: ${e.message}`;
+  }
+}
+
+window.loadTicketTiers = async function() {
+  try {
+    const tiers = await api("/tickets/public/ticket_types?event_id=lfc-2027");
+
+    const html = tiers.map(t => `
+      <div class="tier">
+        <b>${t.name}</b> — $${(t.price_cents/100).toFixed(2)}
+        <button onclick="buyTicket('${t.id}')">Buy</button>
+      </div>
+    `).join("");
+
+    document.getElementById("ticket-list").innerHTML = html;
+
+  } catch (e) {
+    document.getElementById("ticket-list").innerText = "Failed to load ticket tiers";
+  }
+};
+
+window.buyTicket = async function(ticketTypeId) {
+  try {
+    const res = await api("/tickets/orders/create", {
+      method: "POST",
+      body: JSON.stringify({
+        event_id: "lfc-2027",
+        ticket_type_id: ticketTypeId
+      })
+    });
+
+    alert("Ticket issued!\nQR Token:\n" + res.qr_token);
+
+  } catch (e) {
+    alert("Purchase failed: " + e.message);
+  }
+};
+
   (() => {
     const API_BASE = "";
     const LS_KEY = "lfc_auth_v1";
@@ -272,6 +345,34 @@
   });
 }
 
+async function loadSurgeAlert() {
+  try {
+    const data = await api("/admin/arrival_surge?event_id=lfc-2027");
+
+    const existing = $("surge-alert");
+    if (existing) existing.remove();
+
+    if (!data.surge) return;
+
+    const div = document.createElement("div");
+    div.id = "surge-alert";
+    div.className = "card";
+    div.style.background = "#6b1b1b";
+
+    div.innerHTML = `
+      <h3>⚠ Arrival Surge</h3>
+      <p>Last minute: <b>${data.last_minute}</b></p>
+      <p>Average/min: <b>${data.avg_per_min}</b></p>
+    `;
+
+    const host = $("home-panels") || $("dashboard-panels") || document.body;
+    host.prepend(div);
+
+  } catch (e) {
+    console.error("surge detection failed", e);
+  }
+}
+
 window.loadDBTable = async function(name) {
   try {
     const rows = await api(`/admin/db/table?table=${name}&limit=50`);
@@ -295,9 +396,9 @@ window.loadDBTable = async function(name) {
   } catch (e) {
     $("db-view").innerHTML = `<div class="bad">Failed: ${e.message}</div>`;
   }
-}
+};
 
-    async function api(path, opts = {}) {
+    window.api = async function(path, opts={}) {
       const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
       if (auth?.token) headers["Authorization"] = `Bearer ${auth.token}`;
 
@@ -321,13 +422,15 @@ window.loadDBTable = async function(name) {
       }
 
       return data;
-    }
+    };
 
-    const pages = ["home", "checkin", "admin"];
+    const pages = ["home", "tickets", "badge", "checkin", "admin"];
 
     function go(page) {
-      for (const p of pages) show(`page-${p}`, p === page);
-    }
+  for (const p of pages) show(`page-${p}`, p === page);
+  if (page === "tickets") loadMyTickets();
+if (page === "badge") loadMyBadge();
+}
 
     function buildNav(role) {
       const nav = $("nav");
@@ -343,7 +446,9 @@ window.loadDBTable = async function(name) {
       };
 
       mkBtn("Home", "home");
-      mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
+      mkBtn("My Tickets", "tickets");
+mkBtn("My Badge", "badge");      
+mkBtn("Staff Check-in", "checkin", ["admin", "staff", "checkin"]);
       mkBtn("Admin", "admin", ["admin"]);
     }
 
@@ -362,9 +467,38 @@ window.loadDBTable = async function(name) {
       show("view-app", true);
 
       buildNav(auth.role);
-      go("home");
-      renderHome();
+      if (auth?.role === "attendee") {
+  go("badge");
+} else {
+  go("home");
+}
+
+renderHome();
     }
+
+async function loadMyBadge() {
+  try {
+    const rows = await api("/me/tickets");
+
+    if (!rows.length) {
+      document.getElementById("badge-view").innerHTML = "No ticket yet.";
+      return;
+    }
+
+    const t = rows[0];
+
+    document.getElementById("badge-view").innerHTML = `
+      <div style="text-align:center; padding:20px;">
+        <h1 style="font-size:42px; margin-bottom:10px;">${t.ticket_type_name || t.ticket_type_id}</h1>
+        <div style="font-size:18px; margin-bottom:16px;">Status: ${t.status}</div>
+        <img src="/tickets/qr/${t.qr_token}" style="max-width:320px; width:100%;" />
+        <div class="mono" style="margin-top:12px;">${t.qr_token}</div>
+      </div>
+    `;
+  } catch (e) {
+    document.getElementById("badge-view").innerHTML = `Failed: ${e.message}`;
+  }
+}
 
 async function loadLaneAnalytics() {
   try {
@@ -567,6 +701,7 @@ async function loadLiveFeed() {
         `;
 
         kpi.appendChild(breakdown);
+        if (typeof loadTicketTiers === "function") await loadTicketTiers();
         if (typeof loadHomeStats === "function") await loadHomeStats();
         if (typeof loadLiveFeed === "function") await loadLiveFeed();
         if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics();
@@ -955,6 +1090,7 @@ function formatArrivalTime(value) {
 setInterval(async () => {
   if (!auth?.token) return;
   try { if (typeof loadLiveFeed === "function") await loadLiveFeed(); } catch (e) {}
+  try { if (typeof loadSurgeAlert === "function") await loadSurgeAlert(); } catch (e) {}
   try { if (typeof loadLaneAnalytics === "function") await loadLaneAnalytics(); } catch (e) {}
 }, 15000);
 

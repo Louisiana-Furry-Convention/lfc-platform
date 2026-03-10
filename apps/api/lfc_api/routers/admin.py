@@ -322,3 +322,34 @@ def db_table(
         "count": len(result),
         "rows": result
     }
+@router.get("/arrival_surge")
+def arrival_surge(
+    event_id: str = "lfc-2027",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    now = datetime.utcnow()
+    last_1 = now - timedelta(minutes=1)
+    last_5 = now - timedelta(minutes=5)
+
+    q = (
+        db.query(CheckIn)
+        .join(Ticket, Ticket.id == CheckIn.ticket_id)
+        .filter(Ticket.event_id == event_id)
+    )
+
+    last_minute = q.filter(CheckIn.created_at >= last_1).count()
+    last_5_min = q.filter(CheckIn.created_at >= last_5).count()
+
+    avg_per_min = last_5_min / 5 if last_5_min else 0
+
+    surge = last_minute > (avg_per_min * 2) and last_minute >= 10
+
+    return {
+        "event_id": event_id,
+        "last_minute": last_minute,
+        "avg_per_min": round(avg_per_min, 2),
+        "surge": surge
+    }
