@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from lfc_api.db.session import get_db
 from lfc_api.core.deps import get_current_user
 from lfc_api.models.user import User
-from lfc_api.models.ticketing import Ticket, TicketType
+from lfc_api.models.ticketing import Ticket, TicketType, Order
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -42,4 +42,31 @@ def my_tickets(
             "qr_token": t.qr_token,
         }
         for t, tt in rows
+
+    ]
+
+@router.get("/orders")
+def my_orders(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    rows = (
+        db.query(Order, TicketType)
+        .join(TicketType, TicketType.id == Order.ticket_type_id)
+        .filter(Order.user_id == current_user.id)
+        .order_by(Order.id.desc())
+        .all()
+    )
+
+    return [
+        {
+            "order_id": o.id,
+            "event_id": o.event_id,
+            "ticket_type_id": o.ticket_type_id,
+            "ticket_type_name": getattr(tt, "name", tt.id),
+            "status": o.status,
+            "total_cents": o.total_cents,
+            "currency": getattr(tt, "currency", "USD"),
+        }
+        for o, tt in rows
     ]
