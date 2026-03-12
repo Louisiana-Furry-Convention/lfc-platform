@@ -67,3 +67,57 @@ def assign_rfid(
         "status": band.status,
         "is_active": band.is_active,
     }
+
+
+@router.get("/bands")
+def list_bands(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["admin", "staff", "checkin"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    rows = db.query(RFIDBand).order_by(RFIDBand.created_at.desc()).all()
+
+    return [
+        {
+            "band_id": b.id,
+            "tag_uid": b.tag_uid,
+            "event_id": b.event_id,
+            "user_id": b.user_id,
+            "ticket_id": b.ticket_id,
+            "status": b.status,
+            "is_active": b.is_active,
+            "issued_at": b.issued_at,
+            "revoked_at": b.revoked_at,
+            "created_at": b.created_at,
+        }
+        for b in rows
+    ]
+
+
+@router.get("/bands/{tag_uid}")
+def get_band(
+    tag_uid: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role not in ["admin", "staff", "checkin"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    band = db.query(RFIDBand).filter(RFIDBand.tag_uid == tag_uid).first()
+    if not band:
+        raise HTTPException(status_code=404, detail="RFID band not found")
+
+    return {
+        "band_id": band.id,
+        "tag_uid": band.tag_uid,
+        "event_id": band.event_id,
+        "user_id": band.user_id,
+        "ticket_id": band.ticket_id,
+        "status": band.status,
+        "is_active": band.is_active,
+        "issued_at": band.issued_at,
+        "revoked_at": band.revoked_at,
+        "created_at": band.created_at,
+    }
