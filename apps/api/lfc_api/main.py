@@ -6,7 +6,7 @@ from pathlib import Path
 
 from lfc_api.routers import auth, events, tickets, checkin, admin, me, attendance
 
-app = FastAPI(title="LFC Platform API", version="0.1.0")
+app = FastAPI(title="LFC Platform API", version="0.1.3")
 
 # Routers
 app.include_router(auth.router)
@@ -37,3 +37,4 @@ def root():
 @app.get("/health")
 def health():
     return {"ok": True}
+
