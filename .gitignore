@@ -17,6 +17,7 @@ build/
 # DB / local state
 *.db
 *.sqlite
+*.bak
 *.sqlite3
 
 # OS
