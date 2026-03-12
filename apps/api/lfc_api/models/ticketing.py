@@ -10,6 +10,7 @@ class TicketType(Base):
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     price_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="USD")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 class Order(Base):
     __tablename__ = "orders"

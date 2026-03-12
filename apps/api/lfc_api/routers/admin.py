@@ -29,6 +29,20 @@ class PromoteIn(BaseModel):
     role: str  # staff | checkin | admin
     is_active: bool = True
 
+class CreateTicketTypeIn(BaseModel):
+    id: str
+    event_id: str = "lfc-2027"
+    name: str
+    price_cents: int
+    currency: str = "USD"
+    is_active: bool = True
+
+
+class UpdateTicketTypeIn(BaseModel):
+    name: str | None = None
+    price_cents: int | None = None
+    currency: str | None = None
+    is_active: bool | None = None
 
 @router.get("/users")
 def list_users(
@@ -152,6 +166,105 @@ def admin_stats(
         "checked_in": int(checked_in),
         "issued_by_type": {name: int(count) for name, count in issued_by_type_rows},
         "checked_in_by_type": {name: int(count) for name, count in checked_in_by_type_rows},
+    }
+
+@router.get("/ticket_types")
+def admin_ticket_types(
+    event_id: str = "lfc-2027",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    rows = (
+        db.query(TicketType)
+        .filter(TicketType.event_id == event_id)
+        .order_by(TicketType.id.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": t.id,
+            "event_id": t.event_id,
+            "name": t.name,
+            "price_cents": t.price_cents,
+            "currency": t.currency,
+            "is_active": getattr(t, "is_active", True),
+        }
+        for t in rows
+    ]
+
+
+@router.post("/ticket_types")
+def create_ticket_type(
+    data: CreateTicketTypeIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    existing = db.query(TicketType).filter(TicketType.id == data.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Ticket type id already exists")
+
+    ticket_type = TicketType(
+        id=data.id.strip(),
+        event_id=data.event_id,
+        name=data.name.strip(),
+        price_cents=data.price_cents,
+        currency=data.currency.upper().strip(),
+        is_active=bool(data.is_active),
+    )
+    db.add(ticket_type)
+    db.commit()
+
+    return {
+        "ok": True,
+        "id": ticket_type.id,
+        "event_id": ticket_type.event_id,
+        "name": ticket_type.name,
+        "price_cents": ticket_type.price_cents,
+        "currency": ticket_type.currency,
+        "is_active": getattr(ticket_type, "is_active", True),
+    }
+
+
+@router.patch("/ticket_types/{ticket_type_id}")
+def update_ticket_type(
+    ticket_type_id: str,
+    data: UpdateTicketTypeIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, ["admin"])
+
+    ticket_type = db.query(TicketType).filter(TicketType.id == ticket_type_id).first()
+    if not ticket_type:
+        raise HTTPException(status_code=404, detail="Ticket type not found")
+
+    if data.name is not None:
+        ticket_type.name = data.name.strip()
+
+    if data.price_cents is not None:
+        ticket_type.price_cents = data.price_cents
+
+    if data.currency is not None:
+        ticket_type.currency = data.currency.upper().strip()
+
+    if data.is_active is not None:
+        ticket_type.is_active = bool(data.is_active)
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "id": ticket_type.id,
+        "event_id": ticket_type.event_id,
+        "name": ticket_type.name,
+        "price_cents": ticket_type.price_cents,
+        "currency": ticket_type.currency,
+        "is_active": getattr(ticket_type, "is_active", True),
     }
 
 @router.post("/create_staff_test")
