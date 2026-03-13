@@ -7,12 +7,9 @@ from fastapi.responses import StreamingResponse
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-from fastapi import Depends
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
 
-from lfc_api.db.session import get_db
-from lfc_api.models.user import User
 from lfc_api.models.event import ConventionEvent
 from lfc_api.models.ticketing import TicketType, Order, Ticket
 from lfc_api.core.security import hash_password
@@ -49,8 +46,13 @@ def create_order(
     current_user: User = Depends(get_current_user),
 ):
     tt = db.query(TicketType).filter(TicketType.id == data.ticket_type_id).first()
-    if not tt or tt.event_id != data.event_id:
-        raise HTTPException(status_code=404, detail="Ticket type not found for event")
+    if (
+       not tt
+       or tt.event_id != data.event_id
+       or not getattr(tt, "is_active", True)
+       or not getattr(tt, "is_public", True)
+   ):
+       raise HTTPException(status_code=404, detail="Ticket type not available")
 
     order = Order(
         id=str(uuid.uuid4()),
@@ -61,30 +63,18 @@ def create_order(
         total_cents=tt.price_cents,
     )
     db.add(order)
-    db.flush()
-
-    qr_token = secrets.token_urlsafe(24)
-    ticket = Ticket(
-        id=str(uuid.uuid4()),
-        event_id=data.event_id,
-        user_id=current_user.id,
-        ticket_type_id=tt.id,
-        order_id=order.id,
-        qr_token=qr_token,
-        status="issued",
-    )
-    db.add(ticket)
     db.commit()
+    db.refresh(order)
 
     return {
-    "ok": True,
-    "order_id": order.id,
-    "event_id": order.event_id,
-    "ticket_type_id": order.ticket_type_id,
-    "status": order.status,
-    "price_cents": tt.price_cents,
-    "currency": tt.currency,
-}
+       "ok": True,
+       "order_id": order.id,
+       "event_id": order.event_id,
+       "ticket_type_id": order.ticket_type_id,
+       "status": order.status,
+       "price_cents": tt.price_cents,
+       "currency": tt.currency,
+   }
 
 @router.post("/orders/complete")
 def complete_order(
@@ -99,8 +89,21 @@ def complete_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
+    existing_ticket = db.query(Ticket).filter(Ticket.order_id == order.id).first()
+    if existing_ticket:
+       if order.status != "paid":
+           order.status = "paid"
+           db.commit()
+       return {
+           "ok": True,
+           "order_id": order.id,
+           "status": order.status,
+           "ticket_id": existing_ticket.id,
+           "qr_token": existing_ticket.qr_token,
+       }
+
     if order.status == "paid":
-        return {"ok": True, "order_id": order.id, "status": order.status}
+       raise HTTPException(status_code=400, detail="Order is paid but no ticket exists")
 
     tt = db.query(TicketType).filter(TicketType.id == order.ticket_type_id).first()
     if not tt:
@@ -155,23 +158,11 @@ def list_tickets(db: Session = Depends(get_db), limit: int = 50):
 
 @router.get("/public/ticket_types")
 def public_ticket_types(event_id: str = "lfc-2027", db: Session = Depends(get_db)):
-    rows = db.query(TicketType).filter(TicketType.event_id == event_id).all()
-
-    return [
-        {
-            "id": r.id,
-            "name": r.name,
-            "price_cents": r.price_cents,
-            "currency": r.currency,
-        }
-        for r in rows
-    ]
-
-@router.get("/public/ticket_types")
-def public_ticket_types(event_id: str = "lfc-2027", db: Session = Depends(get_db)):
     rows = (
         db.query(TicketType)
         .filter(TicketType.event_id == event_id)
+        .filter(TicketType.is_active == True)
+        .filter(TicketType.is_public == True)
         .all()
     )
 
@@ -218,6 +209,7 @@ def issue_test_ticket(data: IssueTestTicketIn, db: Session = Depends(get_db)):
         id=str(uuid.uuid4()),
         user_id=user.id,
         event_id=data.event_id,
+        ticket_type_id=data.ticket_type_id,
         status="paid_test",
         total_cents=tt.price_cents,
     )
