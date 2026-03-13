@@ -373,3 +373,18 @@ The long term goal is a **full convention operating system** including:
 ---
 
 End of v0.1.3-beta documentation.
+
+## Release Notes
+
+### v0.1.2-beta
+- added real check-in timestamps
+- fixed live arrivals to use true timestamps
+- added lane analytics
+- added surge detection
+- added admin DB viewer
+- added public event info endpoint
+- added public ticket tier listing endpoint
+- added attendee My Tickets page
+- added attendee My Badge full-screen QR page
+- added QR PNG rendering endpoint
+- stabilized dashboard refresh behavior
