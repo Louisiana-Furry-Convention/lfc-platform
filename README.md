@@ -1,310 +1,375 @@
 # LFC Platform
 
-Internal registration and operations backend for Louisiana Furry Convention.
-
-This repository contains the backend system that will power:
-
-- Ticket issuance
-- QR token generation
-- Staff-controlled check-in
-- Role-based access control
-- Event ledger logging
-- Future registration dashboard
-
-This is currently in **active development** and running on a Raspberry Pi edge node for testing.
+Convention Operations Platform for Frosty Fur Fest
 
 ---
 
-# CURRENT DEVELOPMENT STATUS
+# Version Status
 
-## Version: v0.1 – Edge Check-In Foundation
+## v0.1.3-beta (Current Development Snapshot)
 
-Working Features:
+This version establishes the **core ticketing and purchase backbone** for the platform. The goal of 0.1.3 was to ensure that tickets can be created, cataloged, and prepared for payment processing safely.
 
-- Event model
-- User model with roles
-- Ticket issuance endpoint
-- QR token generation
-- Staff-only check-in enforcement
-- Duplicate scan prevention
-- Role promotion endpoint
-- SQLite database
-- Alembic migrations
-- Ledger logging (DomainEvent)
-- Deployed via systemd on Raspberry Pi
+### Major Features Implemented
 
-API is operational and health-checked.
+#### Ticket Catalog
+
+* Public ticket catalog endpoint
+* Internal ticket types hidden from public purchase
+* Support for multiple ticket tiers
+
+Endpoint:
+
+```
+GET /tickets/public/ticket_types
+```
+
+Returns only ticket types where:
+
+```
+is_active = true
+is_public = true
+```
+
+This prevents internal tickets (staff/vendor/etc) from appearing in the public store.
 
 ---
 
-# ARCHITECTURE
+#### Order Creation
 
-Backend:
+Authenticated users can create ticket purchase orders.
+
+Endpoint:
+
+```
+POST /tickets/orders/create
+```
+
+Creates an order in **pending** state.
+
+Order fields:
+
+* order_id
+* event_id
+* ticket_type_id
+* total_cents
+* status
+
+---
+
+#### Payment Router (Clover Integration Skeleton)
+
+Payment router created and wired into the API.
+
+Endpoints:
+
+```
+POST /payments/clover/checkout
+POST /payments/clover/webhook
+```
+
+Capabilities:
+
+* Creates Clover hosted checkout session
+* Associates checkout session with platform order
+* Webhook verifies Clover signature
+* Marks order as paid
+
+Ticket issuance hook prepared but not fully wired to production payment flow.
+
+---
+
+#### Admin Ticket Controls
+
+Admins can modify ticket types via API.
+
+Endpoint:
+
+```
+PATCH /admin/ticket_types/{ticket_type_id}
+```
+
+Fields that can be updated:
+
+* name
+* price_cents
+* is_active
+
+This allows convention leadership to adjust ticket availability and pricing without direct database access.
+
+---
+
+#### Ticket Issuance
+
+Tickets are created when an order transitions to **paid**.
+
+Ticket includes:
+
+* ticket_id
+* qr_token
+* order_id
+* ticket_type_id
+
+QR tokens are generated securely and can be rendered via:
+
+```
+GET /tickets/qr/{qr_token}
+```
+
+---
+
+#### RFID Foundation
+
+RFID band model exists for future integration.
+
+Table:
+
+```
+rfid_bands
+```
+
+Designed to support:
+
+* attendee wristbands
+* room access
+* panel attendance tracking
+
+Full usage planned for a later version.
+
+---
+
+# Current System Architecture
+
+```
+Website
+   ↓
+API (FastAPI)
+   ↓
+Orders
+   ↓
+Clover Checkout
+   ↓
+Webhook
+   ↓
+Ticket Issuance
+```
+
+---
+
+# Known Limitations in v0.1.3
+
+These are intentionally deferred:
+
+* Clover credentials not yet configured
+* Website purchase page not implemented
+* Ticket purchase UI missing
+* Admin dashboard improvements pending
+
+Backend functionality is ready for integration.
+
+---
+
+# Goals for v0.1.4
+
+Version 0.1.4 focuses on **public ticket sales and website integration**.
+
+### Primary Objectives
+
+1. Implement public purchase page
+2. Connect website purchase flow to API
+3. Complete Clover payment integration
+4. Automatic ticket issuance after webhook payment confirmation
+
+---
+
+### Website Purchase Flow
+
+Target flow for website:
+
+```
+1. Load available tickets
+GET /tickets/public/ticket_types
+
+2. User selects ticket
+
+3. Create order
+POST /tickets/orders/create
+
+4. Start checkout
+POST /payments/clover/checkout
+
+5. Redirect to Clover hosted checkout
+
+6. Clover webhook confirms payment
+
+7. Ticket issued
+
+8. Website displays ticket
+```
+
+---
+
+# Website Team Handoff Notes
+
+The backend API is now stable enough for frontend integration.
+
+## Ticket Catalog
+
+Endpoint:
+
+```
+GET /tickets/public/ticket_types
+```
+
+Example response:
+
+```
+[
+ {
+  "id": "lfc-2027-regular",
+  "name": "Regular Registration",
+  "price_cents": 7000,
+  "currency": "USD"
+ }
+]
+```
+
+Prices are returned in **cents**.
+
+Frontend should display:
+
+```
+price_cents / 100
+```
+
+---
+
+## Creating an Order
+
+Endpoint:
+
+```
+POST /tickets/orders/create
+```
+
+Body:
+
+```
+{
+ "ticket_type_id": "lfc-2027-regular"
+}
+```
+
+Returns:
+
+```
+{
+ "order_id": "uuid",
+ "price_cents": 7000
+}
+```
+
+---
+
+## Starting Checkout
+
+Endpoint:
+
+```
+POST /payments/clover/checkout
+```
+
+Body:
+
+```
+{
+ "order_id": "uuid"
+}
+```
+
+Response:
+
+```
+{
+ "checkout_url": "https://checkout.clover.com/..."
+}
+```
+
+Frontend should redirect the user to this URL.
+
+---
+
+## After Payment
+
+Clover will redirect the user back to the website.
+
+Redirect URLs are configured in API config.
+
+Possible endpoints:
+
+```
+/purchase/success
+/purchase/cancel
+```
+
+Website should then query the user's tickets.
+
+---
+
+# Security Notes
+
+Key protections already implemented:
+
+* Only authenticated users can create orders
+* Orders belong to the authenticated user
+* Internal ticket types cannot be purchased
+* Payment confirmation handled via Clover webhook
+
+This prevents most common ticket fraud patterns.
+
+---
+
+# Development Notes
+
+Current development environment:
+
+```
+Python 3.11
 FastAPI
+SQLite (edge deployment)
+Docker-ready architecture
+```
 
-Database:
-SQLite (edge testing)
-PostgreSQL planned for production
+Planned future upgrades:
 
-ORM:
-SQLAlchemy
-
-Migrations:
-Alembic
-
-Authentication:
-Role-based (no JWT yet)
-
-Password Hashing:
-PBKDF2 (bcrypt removed for ARM compatibility)
-
-Deployment:
-systemd service (`lfc-api.service`) on Raspberry Pi
+* PostgreSQL production database
+* Redis caching
+* containerized deployment
 
 ---
 
-# ROLE SYSTEM
+# Next Major Milestones
 
-Current roles:
+After v0.1.4:
 
-- attendee
-- staff
-- checkin
-- admin
-
-Check-in requires:
-- Active user
-- Role in {staff, checkin, admin}
-
-Promotion endpoint allows upgrading users.
-
-JWT login system not implemented yet.
+* RFID wristband issuance
+* panel attendance tracking
+* queue analytics
+* real-time event dashboards
 
 ---
 
-# HOW TO RUN (DEVELOPMENT)
+# Project Vision
 
-## Clone
-# LFC Platform
+The long term goal is a **full convention operating system** including:
 
-Internal registration and operations backend for Louisiana Furry Convention.
-
-This repository contains the backend system that will power:
-
-- Ticket issuance
-- QR token generation
-- Staff-controlled check-in
-- Role-based access control
-- Event ledger logging
-- Future registration dashboard
-
-This is currently in **active development** and running on a Raspberry Pi edge node for testing.
+* registration
+* ticketing
+* staff management
+* attendance analytics
+* queue management
+* live event telemetry
 
 ---
 
-# CURRENT DEVELOPMENT STATUS
-
-## Version: v0.1 – Edge Check-In Foundation
-
-Working Features:
-
-- Event model
-- User model with roles
-- Ticket issuance endpoint
-- QR token generation
-- Staff-only check-in enforcement
-- Duplicate scan prevention
-- Role promotion endpoint
-- SQLite database
-- Alembic migrations
-- Ledger logging (DomainEvent)
-- Deployed via systemd on Raspberry Pi
-
-API is operational and health-checked.
-
----
-
-# ARCHITECTURE
-
-Backend:
-FastAPI
-
-Database:
-SQLite (edge testing)
-PostgreSQL planned for production
-
-ORM:
-SQLAlchemy
-
-Migrations:
-Alembic
-
-Authentication:
-Role-based (no JWT yet)
-
-Password Hashing:
-PBKDF2 (bcrypt removed for ARM compatibility)
-
-Deployment:
-systemd service (`lfc-api.service`) on Raspberry Pi
-
----
-
-# ROLE SYSTEM
-
-Current roles:
-
-- attendee
-- staff
-- checkin
-- admin
-
-Check-in requires:
-- Active user
-- Role in {staff, checkin, admin}
-
-Promotion endpoint allows upgrading users.
-
-JWT login system not implemented yet.
-
----
-
-# HOW TO RUN (DEVELOPMENT)
-
-## Clone
-
-git clone https://github.com/Thorthedefender/lfc-platform.git
-
-
-## Enter API directory
-
-
-cd apps/api
-
-
-## Create virtual environment
-
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-
-## Install dependencies
-
-
-pip install -r requirements.txt
-
-
-## Run migrations
-
-
-alembic upgrade head
-
-
-## Seed database
-
-
-python seed.py
-
-
-## Start locally
-
-
-uvicorn lfc_api.main:app --reload
-
-
-Swagger UI:
-http://127.0.0.1:8000/docs
-
----
-
-# EDGE NODE (Raspberry Pi)
-
-Service:
-lfc-api.service
-
-Restart:
-
-sudo systemctl restart lfc-api
-
-
-Health check:
-
-curl http://127.0.0.1:8000/health
-
-
----
-
-# CURRENT WORKFLOW
-
-1. Create Event (seeded)
-2. Issue ticket via `/tickets/issue_test`
-3. Promote staff via `/admin/promote_user_role`
-4. Perform check-in via `/checkin`
-5. DomainEvent logged
-
----
-
-# WHAT IS NOT BUILT YET
-
-- JWT login / authentication tokens
-- Staff login session system
-- Front-end dashboard
-- Payment processing
-- Capacity enforcement
-- Refund logic
-- Vendor module
-- Financial reporting
-- Occupancy tracking
-- Production-level database
-
----
-
-# NEXT DEVELOPMENT TARGETS
-
-Immediate:
-
-- Basic frontend dashboard (HTML or React)
-- Ticket lookup endpoint
-- Staff login system (JWT)
-- Role-based route protection decorator
-
-Mid-Term:
-
-- Tier capacity limits
-- Live check-in counter
-- Financial reporting endpoints
-- Better audit logging
-
-Long-Term:
-
-- Multi-event support
-- Vendor management
-- Production asset tracking
-- Executive analytics dashboard
-
----
-
-# CONTRIBUTION GUIDELINES
-
-Changes affecting:
-
-- Database schema
-- Role logic
-- Check-in logic
-- Financial models
-- Ticket validation
-
-Should be reviewed before deployment to edge.
-
----
-
-# OWNERS
-
-Executive Authority:
-Thor
-
-Technical Director:
-Cache
-
-This repository represents the operational backbone of the event and should be treated as production infrastructure in progress.
+End of v0.1.3-beta documentation.
