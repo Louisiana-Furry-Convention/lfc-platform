@@ -13,11 +13,11 @@ CLOVER_ENV = os.getenv("CLOVER_ENV", "sandbox")  # sandbox or production
 CLOVER_MERCHANT_ID = os.getenv("CLOVER_MERCHANT_ID", "")
 CLOVER_API_TOKEN = os.getenv("CLOVER_API_TOKEN", "")
 CLOVER_WEBHOOK_SECRET = os.getenv("CLOVER_WEBHOOK_SECRET", "")
-CLOVER_BASE_URL = os.getenv("CLOVER_BASE_URL", "")
+CLOVER_BASE_URL = os.getenv("CLOVER_BASE_URL", "").rstrip("/")
 
 # Public URLs
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.frostyfurfest.com") # API Domain
-WEB_BASE_URL = os.getenv("WEB_BASE_URL", "https://frostyfurfest.com") # Website
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.frostyfurfest.com")
+WEB_BASE_URL = os.getenv("WEB_BASE_URL", "https://frostyfurfest.com").rstrip("/")
 
 # Redirects after Clover checkout
 CLOVER_SUCCESS_URL = os.getenv(

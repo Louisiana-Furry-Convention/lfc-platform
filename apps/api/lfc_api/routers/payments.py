@@ -1,19 +1,19 @@
-import uuid
-import secrets
 import hmac
 import hashlib
 import json
+from datetime import datetime, timezone
 
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from lfc_api.db.session import get_db
-from lfc_api.core.deps import get_current_user
-from lfc_api.models.user import User
-from lfc_api.models.ticketing import Order, Ticket
 from lfc_api.core import config
+from lfc_api.core.deps import get_current_user
+from lfc_api.core.ticketing import issue_ticket_for_order
+from lfc_api.db.session import get_db
+from lfc_api.models.ticketing import Order
+from lfc_api.models.user import User
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -73,6 +73,10 @@ def create_clover_checkout(
     if not config.CLOVER_MERCHANT_ID:
         raise HTTPException(status_code=500, detail="Clover merchant id not configured")
 
+    base_url = getattr(config, "CLOVER_BASE_URL", "").strip()
+    if not base_url:
+        raise HTTPException(status_code=500, detail="Clover base URL not configured")
+
     payload = {
         "customer": {},
         "shoppingCart": {
@@ -97,10 +101,6 @@ def create_clover_checkout(
         "Content-Type": "application/json",
     }
 
-    base_url = getattr(config, "CLOVER_BASE_URL", "").strip()
-    if not base_url:
-        raise HTTPException(status_code=500, detail="Clover base URL not configured")
-
     try:
         resp = requests.post(
             f"{base_url}/v1/checkouts",
@@ -124,15 +124,19 @@ def create_clover_checkout(
     )
 
     if not checkout_id or not checkout_url:
-        raise HTTPException(status_code=502, detail="Clover response missing checkout id or URL")
+        raise HTTPException(
+            status_code=502,
+            detail="Clover response missing checkout id or URL",
+        )
 
-    order.clover_checkout_id = checkout_id
+    order.clover_checkout_id = str(checkout_id)
     db.commit()
+    db.refresh(order)
 
     return {
         "ok": True,
         "order_id": order.id,
-        "clover_checkout_id": checkout_id,
+        "clover_checkout_id": order.clover_checkout_id,
         "checkout_url": checkout_url,
     }
 
@@ -172,6 +176,12 @@ async def clover_webhook(
         or payload.get("result")
     )
 
+    amount = (
+        payload.get("amount")
+        or payload.get("total")
+        or payload.get("totalAmount")
+    )
+
     if not order_id:
         raise HTTPException(status_code=400, detail="Missing order reference in webhook")
 
@@ -179,17 +189,8 @@ async def clover_webhook(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    if order.status == "paid":
-        existing_ticket = db.query(Ticket).filter(Ticket.order_id == order.id).first()
-        return {
-            "ok": True,
-            "order_id": order.id,
-            "status": order.status,
-            "ticket_id": existing_ticket.id if existing_ticket else None,
-            "duplicate": True,
-        }
-
-    if str(payment_status).lower() not in {"approved", "paid", "succeeded", "success"}:
+    normalized_status = str(payment_status).lower()
+    if normalized_status not in {"approved", "paid", "succeeded", "success"}:
         return {
             "ok": True,
             "order_id": order.id,
@@ -197,39 +198,31 @@ async def clover_webhook(
             "ignored": True,
         }
 
-    order.status = "paid"
+    if amount is not None:
+        try:
+            paid_amount = int(amount)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="Invalid payment amount")
+
+        if paid_amount != order.total_cents:
+            raise HTTPException(status_code=400, detail="Payment amount mismatch")
+
     if payment_id:
         order.clover_payment_id = str(payment_id)
 
-    existing_ticket = db.query(Ticket).filter(Ticket.order_id == order.id).first()
-    if existing_ticket:
-        db.commit()
-        return {
-            "ok": True,
-            "order_id": order.id,
-            "status": order.status,
-            "ticket_id": existing_ticket.id,
-            "duplicate": True,
-        }
+    if order.status != "paid":
+        order.status = "paid"
+        order.paid_at = datetime.now(timezone.utc)
 
-    qr_token = secrets.token_urlsafe(24)
-
-    ticket = Ticket(
-        id=str(uuid.uuid4()),
-        event_id=order.event_id,
-        user_id=order.user_id,
-        ticket_type_id=order.ticket_type_id,
-        order_id=order.id,
-        qr_token=qr_token,
-        status="issued",
-    )
-    db.add(ticket)
+    ticket = issue_ticket_for_order(db, order)
     db.commit()
+    db.refresh(order)
+    db.refresh(ticket)
 
     return {
         "ok": True,
         "order_id": order.id,
         "status": order.status,
         "ticket_id": ticket.id,
-        "qr_token": qr_token,
+        "qr_token": ticket.qr_token,
     }
