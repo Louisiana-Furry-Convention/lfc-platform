@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pathlib import Path
 
-from lfc_api.routers import auth, events, tickets, checkin, admin, me, attendance, rfid
+from lfc_api.routers import auth, events, tickets, checkin, admin, me, attendance, rfid, payments
 
 app = FastAPI(title="LFC Platform API", version="0.1.3")
 
@@ -17,6 +17,7 @@ app.include_router(admin.router)
 app.include_router(me.router)
 app.include_router(attendance.router)
 app.include_router(rfid.router)
+app.include_router(payments.router)
 
 # Dev CORS (lock down later)
 app.add_middleware(

@@ -5,21 +5,32 @@ from datetime import datetime
 
 class TicketType(Base):
     __tablename__ = "ticket_types"
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)   # e.g. lfc-2027-regular
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
     event_id: Mapped[str] = mapped_column(String(64), ForeignKey("events.id"), index=True)
+
     name: Mapped[str] = mapped_column(String(80), nullable=False)
+
     price_cents: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), default="USD")
+
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
 
 class Order(Base):
     __tablename__ = "orders"
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), index=True)
     event_id: Mapped[str] = mapped_column(String(64), ForeignKey("events.id"), index=True)
     ticket_type_id: Mapped[str] = mapped_column(String(64), ForeignKey("ticket_types.id"))
+
     status: Mapped[str] = mapped_column(String(20), default="pending")
     total_cents: Mapped[int] = mapped_column(Integer, default=0)
+
+    clover_payment_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    clover_checkout_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     created_at: Mapped["DateTime"] = mapped_column(DateTime, server_default=func.now())
 
 class Ticket(Base):

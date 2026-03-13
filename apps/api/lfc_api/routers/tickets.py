@@ -46,8 +46,13 @@ def create_order(
     current_user: User = Depends(get_current_user),
 ):
     tt = db.query(TicketType).filter(TicketType.id == data.ticket_type_id).first()
-    if not tt or tt.event_id != data.event_id:
-        raise HTTPException(status_code=404, detail="Ticket type not found for event")
+    if (
+       not tt
+       or tt.event_id != data.event_id
+       or not getattr(tt, "is_active", True)
+       or not getattr(tt, "is_public", True)
+   ):
+       raise HTTPException(status_code=404, detail="Ticket type not available")
 
     order = Order(
         id=str(uuid.uuid4()),
@@ -156,6 +161,8 @@ def public_ticket_types(event_id: str = "lfc-2027", db: Session = Depends(get_db
     rows = (
         db.query(TicketType)
         .filter(TicketType.event_id == event_id)
+        .filter(TicketType.is_active == True)
+        .filter(TicketType.is_public == True)
         .all()
     )
 
