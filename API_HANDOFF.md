@@ -1,76 +1,25 @@
-# LFC Platform API Handoff
-## For WordPress / Website Integration
+LouisiAnthro Convention Platform
+Backend Version: v0.1.4
 
-This document describes the current public-facing and authenticated API endpoints intended for website integration.
+Organization: Louisiana Furry Convention LLC (LFC)
+Event: LouisiAnthro 2027
 
-## Integration Model
+This document describes how the website frontend integrates with the LFC ticketing backend.
 
-LFC Platform is intended to run separately from the WordPress website.
+API Base
 
-### Recommended Structure
-- `www.domain.com` → WordPress website
-- `app.domain.com` → LFC attendee/staff/admin app
-- `api.domain.com` → LFC Platform API
+Example development URL:
 
-WordPress can:
-- link users into the app
-- directly call public API endpoints
-- optionally use a plugin or custom JavaScript to integrate API responses into pages
+http://127.0.0.1:8000
 
----
+Production will be something like:
 
-## Base URL
-
-Example:
-
-```text
-https://api.domain.com
+https://api.louisianthro.org
 Authentication
 
-Authenticated endpoints use bearer token auth.
+Authentication uses JWT Bearer tokens.
 
-Header format:
-
-Authorization: Bearer <access_token>
-Public Endpoints
-1. Get Public Event Info
-GET /events/public/{event_id}
-Example
-GET /events/public/lfc-2027
-Response
-{
-  "event_id": "lfc-2027",
-  "name": "LFC 2027",
-  "location": "Baton Rouge Marriott",
-  "start_date": "2027-01-29",
-  "end_date": "2027-01-31"
-}
-2. Get Public Ticket Tiers
-GET /tickets/public/ticket_types?event_id=lfc-2027
-Response
-[
-  {
-    "id": "lfc-2027-regular",
-    "event_id": "lfc-2027",
-    "name": "Regular",
-    "price_cents": 10000,
-    "currency": "USD"
-  }
-]
-Auth Endpoints
-3. Signup
-POST /auth/signup
-Request
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "display_name": "Thor"
-}
-Response
-{
-  "ok": true
-}
-4. Login
+Login
 POST /auth/login
 Request
 {
@@ -79,20 +28,89 @@ Request
 }
 Response
 {
-  "access_token": "TOKEN_HERE",
+  "access_token": "JWT_TOKEN",
   "token_type": "bearer",
   "role": "attendee",
   "user": {
-    "id": "USER_ID",
+    "id": "uuid",
     "email": "user@example.com",
-    "display_name": "Thor",
+    "display_name": "User Name",
     "role": "attendee"
   }
 }
-Authenticated Attendee Endpoints
-5. Create Order / Issue Ticket Scaffold
+
+Frontend should store:
+
+access_token
+
+and include it in requests:
+
+Authorization: Bearer TOKEN
+Create Account
+POST /auth/signup
+Request
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "display_name": "User Name"
+}
+Response
+{
+  "ok": true
+}
+Current User
+GET /auth/me
+
+Header:
+
+Authorization: Bearer TOKEN
+Response
+{
+  "ok": true,
+  "id": "uuid",
+  "email": "user@example.com",
+  "role": "attendee",
+  "is_active": true
+}
+Ticket Types (Public)
+
+Used to display registration options.
+
+GET /tickets/public/ticket_types
+Response
+[
+  {
+    "id": "lfc-2027-early",
+    "event_id": "lfc-2027",
+    "name": "Early Registration",
+    "price_cents": 4500,
+    "currency": "USD"
+  },
+  {
+    "id": "lfc-2027-regular",
+    "event_id": "lfc-2027",
+    "name": "Regular Registration",
+    "price_cents": 7000,
+    "currency": "USD"
+  }
+]
+
+Frontend should convert:
+
+price_cents / 100
+
+Example:
+
+7000 → $70.00
+Create Order
+
+User must be authenticated.
+
 POST /tickets/orders/create
-Authorization: Bearer <token>
+
+Header:
+
+Authorization: Bearer TOKEN
 Request
 {
   "event_id": "lfc-2027",
@@ -101,110 +119,186 @@ Request
 Response
 {
   "ok": true,
-  "order_id": "ORDER_ID",
-  "ticket_id": "TICKET_ID",
+  "order_id": "uuid",
+  "event_id": "lfc-2027",
   "ticket_type_id": "lfc-2027-regular",
-  "qr_token": "QR_TOKEN_HERE",
-  "price_cents": 10000,
+  "status": "pending",
+  "price_cents": 7000,
   "currency": "USD"
 }
-6. Get My Tickets
-GET /me/tickets
-Authorization: Bearer <token>
+
+The frontend should store the order_id.
+
+User Orders
+GET /me/orders
+
+Header:
+
+Authorization: Bearer TOKEN
 Response
 [
   {
-    "ticket_id": "TICKET_ID",
+    "order_id": "uuid",
     "event_id": "lfc-2027",
     "ticket_type_id": "lfc-2027-regular",
-    "ticket_type_name": "Regular",
-    "status": "issued",
-    "qr_token": "QR_TOKEN_HERE"
+    "ticket_type_name": "Regular Registration",
+    "status": "pending",
+    "total_cents": 7000,
+    "currency": "USD",
+    "clover_checkout_id": null,
+    "clover_payment_id": null,
+    "created_at": "2026-03-13T09:35:51",
+    "paid_at": null
   }
 ]
-7. Render QR Badge PNG
+
+Status values:
+
+pending
+paid
+paid_test
+User Tickets
+GET /me/tickets
+
+Header:
+
+Authorization: Bearer TOKEN
+Response
+[
+  {
+    "ticket_id": "uuid",
+    "order_id": "uuid",
+    "event_id": "lfc-2027",
+    "ticket_type_id": "lfc-2027-regular",
+    "ticket_type_name": "Regular Registration",
+    "status": "issued",
+    "qr_token": "ticketid|signature",
+    "issued_at": "2026-03-13T09:42:41"
+  }
+]
+QR Code Generation
+
+The QR code for a ticket can be rendered via:
+
 GET /tickets/qr/{qr_token}
 
-This returns a PNG image suitable for attendee display.
+Example:
 
-Example
-GET /tickets/qr/QR_TOKEN_HERE
-Staff / Admin Endpoints
+/tickets/qr/d7cf0442-4aa6-4579-b6e3-af2ec3f0b23e|83b77fe723a45973
 
-These are internal and should not be exposed publicly in WordPress.
+Returns:
 
-POST /checkin
+PNG image
 
-GET /admin/live_feed
+The website can embed it as:
 
-GET /admin/lane_analytics
+<img src="/tickets/qr/{qr_token}" />
+Ticket Purchase Flow
 
-GET /admin/arrival_surge
+Frontend should follow this flow.
 
-GET /admin/db/table
+Step 1
 
-Recommended WordPress Use
-Public Website Pages
-
-WordPress should call:
-
-GET /events/public/{event_id}
+Display available registrations
 
 GET /tickets/public/ticket_types
+Step 2
 
-to build pages like:
+User logs in or creates account
 
-event info
+POST /auth/login
+or
+POST /auth/signup
+Step 3
 
-ticket pricing
+Create order
 
-buy tickets
+POST /tickets/orders/create
 
-Login / Attendee Portal
+Store:
 
-WordPress may:
+order_id
+Step 4
 
-redirect users into the LFC app
+Redirect to payment (Clover integration coming)
 
-or call /auth/login, /auth/signup, /me/tickets directly
+Example future flow:
 
-Recommended Initial Deployment
+POST /payments/clover/create_checkout
 
-Best first deployment:
+Return:
 
-WordPress for public content
+checkout_url
 
-LFC Platform app for account/ticket/badge flow
+Frontend redirects user.
 
-This keeps convention logic separate from WordPress and makes long-term scaling easier.
+Step 5
 
-Notes
-Current Version
+After successful payment
 
-v0.1.2-beta
+Payment webhook marks order:
 
-Current Status
+status = paid
 
-This API currently supports:
+Ticket is automatically issued.
 
-attendee auth
+Step 6
 
-public event info
+User dashboard loads tickets
 
-public ticket tier listing
+GET /me/tickets
 
-ticket issuance scaffold
+Display:
 
-attendee QR badge display
+ticket_type_name
+QR code
+issued_at
+Ticket Dashboard Example
 
-internal admin operations
+Display something like:
 
-Planned Later Additions
+LouisiAnthro 2027
+Regular Registration
 
-payment provider integration
+[ QR CODE ]
 
-full order lifecycle
+Ticket ID
+Issued Date
+Security Notes
 
-refined public purchase flow
+Frontend must not trust ticket data from client state.
 
-improved ticket status model
+Always reload tickets from:
+
+GET /me/tickets
+Admin Notes
+
+Admin endpoints exist for:
+
+order completion
+
+live analytics
+
+check-in scanning
+
+These are not used by the public website.
+
+Backend Version
+
+Current backend version:
+
+v0.1.4
+
+Supports:
+
+authentication
+
+attendee accounts
+
+ticket orders
+
+ticket issuance
+
+QR generation
+
+admin completion

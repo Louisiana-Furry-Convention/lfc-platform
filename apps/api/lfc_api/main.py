@@ -1,12 +1,30 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pathlib import Path
 
-from lfc_api.routers import auth, events, tickets, checkin, admin, me, attendance, rfid, payments
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
-app = FastAPI(title="LFC Platform API", version="0.1.3")
+from lfc_api.db.init_db import init_db
+from lfc_api.routers import (
+    admin,
+    attendance,
+    auth,
+    checkin,
+    events,
+    me,
+    payments,
+    rfid,
+    tickets,
+)
+
+app = FastAPI(
+    title="LFC Platform API",
+    version="0.1.4",
+)
+
+# Ensure DB schema exists before serving requests
+init_db()
 
 # Routers
 app.include_router(auth.router)
@@ -19,7 +37,6 @@ app.include_router(attendance.router)
 app.include_router(rfid.router)
 app.include_router(payments.router)
 
-# Dev CORS (lock down later)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,15 +45,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve the web UI (apps/web/index.html) at /
-WEB_DIR = Path(__file__).resolve().parents[2] / "web"   # -> apps/web
+WEB_DIR = Path(__file__).resolve().parents[2] / "web"
 app.mount("/web", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
+
 
 @app.get("/")
 def root():
     return FileResponse(str(WEB_DIR / "index.html"))
 
+
 @app.get("/health")
 def health():
     return {"ok": True}
-
