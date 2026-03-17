@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     app_name: str = "lfc-platform"
     app_version: str = "v0.2.0-dev"
 
-    database_url: str = "sqlite:///./lfc.db"
+    database_url: str = "sqlite:///./lfc-edge.db"
     secret_key: str = "change-me"
 
     api_base_url: str = "http://127.0.0.1:8000"

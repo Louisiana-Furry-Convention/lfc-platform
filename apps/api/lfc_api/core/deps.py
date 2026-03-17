@@ -1,37 +1,19 @@
 from collections.abc import Callable
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
-from lfc_api.core.config import settings
+from lfc_api.core.security import decode_access_token
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
 
 
-ALGORITHM = "HS256"
-
-def get_current_user(token: str = None, db: Session = Depends(get_db)):
-    from fastapi.security import OAuth2PasswordBearer
-    oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-    resolved_token = token or oauth2_scheme.__call__()
-
-    if not resolved_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
-
-    try:
-        payload = jwt.decode(resolved_token, settings.secret_key, algorithms=[ALGORITHM])
-        user_id = payload.get("sub")
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token",
-            )
-    except JWTError:
+def get_current_user(
+    payload: dict = Depends(decode_access_token),
+    db: Session = Depends(get_db),
+):
+    user_id = payload.get("sub")
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
