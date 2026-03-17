@@ -24,6 +24,7 @@ Environment example:
   "version": "v0.1.5",
   "environment": "dev"
 }
+```
 Platform Status
 
 Core backend ticketing system is operational.
