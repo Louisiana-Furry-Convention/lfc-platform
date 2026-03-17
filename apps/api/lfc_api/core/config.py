@@ -1,5 +1,7 @@
 import os
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lfc_edge.db")
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev_change_me")
@@ -29,3 +31,28 @@ CLOVER_CANCEL_URL = os.getenv(
     "CLOVER_CANCEL_URL",
     f"{WEB_BASE_URL}/purchase/cancel"
 )
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    app_env: str = "dev"
+    app_name: str = "lfc-platform"
+    app_version: str = "v0.1.5-dev"
+
+    database_url: str = "sqlite:///./lfc.db"
+    secret_key: str = "change-me"
+
+    api_base_url: str = "http://127.0.0.1:8000"
+    frontend_base_url: str = "http://127.0.0.1:3000"
+
+    clover_merchant_id: str | None = None
+    clover_api_key: str | None = None
+    clover_webhook_secret: str | None = None
+
+
+settings = Settings()
