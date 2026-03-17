@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Platform - Admin Applications</title>
+
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/layout.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="card page-card">
+      <div class="card-header">
+        <h1>Admin Application Queue</h1>
+        <p id="queue-status">Loading queue...</p>
+      </div>
+
+      <div class="dashboard-actions">
+        <a class="button" href="./admin.html">Dashboard</a>
+        <a class="button" href="./applications.html">My Applications</a>
+        <button id="logout-button" class="button">Logout</button>
+      </div>
+
+      <div class="info-block">
+        <h2>Filters</h2>
+
+        <form id="filter-form" class="form">
+          <div class="form-group">
+            <label for="status">Status</label>
+            <input id="status" name="status" type="text" />
+          </div>
+
+          <div class="form-group">
+            <label for="application_type">Application Type</label>
+            <input id="application_type" name="application_type" type="text" />
+          </div>
+
+          <div class="form-group">
+            <label for="event_id">Event ID</label>
+            <input id="event_id" name="event_id" type="text" />
+          </div>
+
+          <div class="form-group">
+            <label for="reviewed">Reviewed</label>
+            <select id="reviewed" name="reviewed">
+              <option value="">Any</option>
+              <option value="true">True</option>
+              <option value="false">False</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="limit">Limit</label>
+            <input id="limit" name="limit" type="number" value="25" />
+          </div>
+
+          <div class="form-group">
+            <label for="offset">Offset</label>
+            <input id="offset" name="offset" type="number" value="0" />
+          </div>
+
+          <button type="submit" class="button button-primary">Load Queue</button>
+        </form>
+      </div>
+
+      <div class="info-block">
+        <h2>Review Application</h2>
+
+        <form id="review-form" class="form">
+          <div class="form-group">
+            <label for="review_application_id">Application ID</label>
+            <input id="review_application_id" name="review_application_id" type="text" required />
+          </div>
+
+          <div class="form-group">
+            <label for="review_status">New Status</label>
+            <input id="review_status" name="review_status" type="text" required />
+          </div>
+
+          <div class="form-group">
+            <label for="review_notes">Review Notes</label>
+            <textarea id="review_notes" name="review_notes" rows="5"></textarea>
+          </div>
+
+          <button type="submit" class="button button-primary">Submit Review</button>
+          <p id="review-status-message" class="status-message"></p>
+        </form>
+      </div>
+
+      <div class="info-block">
+        <h2>Queue Data</h2>
+        <pre id="queue-output">Loading...</pre>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./assets/js/pages/admin-apps.js"></script>
+</body>
+</html>
