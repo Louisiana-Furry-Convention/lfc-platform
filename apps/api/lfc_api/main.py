@@ -16,11 +16,13 @@ from lfc_api.routers import (
     payments,
     rfid,
     tickets,
+    system,
+    scanner,
 )
 
 app = FastAPI(
     title="LFC Platform API",
-    version="0.1.4",
+    version="0.1.5",
 )
 
 # Ensure DB schema exists before serving requests
@@ -36,6 +38,8 @@ app.include_router(me.router)
 app.include_router(attendance.router)
 app.include_router(rfid.router)
 app.include_router(payments.router)
+app.include_router(system.router)
+app.include_router(scanner.router)
 
 app.add_middleware(
     CORSMiddleware,
