@@ -1,14 +1,16 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
 from lfc_api.models.ticketing import CheckIn, Ticket, TicketType
+from lfc_api.models.application import Application
 
 from lfc_api.core.deps import get_current_user
 from lfc_api.core.authz import require_roles
@@ -16,6 +18,15 @@ from lfc_api.core.security import hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+APPLICATION_STATUSES = {
+    "submitted",
+    "under_review",
+    "approved",
+    "denied",
+    "waitlisted",
+}
+
+APPLICATION_REVIEW_ROLES = ["admin", "officer", "director"]
 
 class CreateStaffIn(BaseModel):
     email: EmailStr
@@ -37,6 +48,9 @@ class CreateTicketTypeIn(BaseModel):
     currency: str = "USD"
     is_active: bool = True
 
+class ApplicationStatusUpdate(BaseModel):
+    status: str
+    review_notes: str | None = None
 
 class UpdateTicketTypeIn(BaseModel):
     name: str | None = None
@@ -414,6 +428,7 @@ def db_table(
         "tickets": Ticket,
         "checkins": CheckIn,
         "ticket_types": TicketType,
+        "applications": Application,
     }
 
     model = allowed.get(table)
@@ -465,4 +480,159 @@ def arrival_surge(
         "last_minute": last_minute,
         "avg_per_min": round(avg_per_min, 2),
         "surge": surge
+    }
+
+@router.get("/applications")
+def admin_list_applications(
+    status: str | None = None,
+    application_type: str | None = None,
+    event_id: str | None = None,
+    reviewed: bool | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    Reviewer = aliased(User)
+
+    query = (
+        db.query(Application, Reviewer)
+        .outerjoin(Reviewer, Reviewer.id == Application.reviewed_by)
+    )
+
+    if status:
+        if status not in APPLICATION_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        query = query.filter(Application.status == status)
+
+    if application_type:
+        query = query.filter(Application.application_type == application_type)
+
+    if event_id:
+        query = query.filter(Application.event_id == event_id)
+
+    if reviewed is True:
+        query = query.filter(Application.reviewed_at.isnot(None))
+
+    if reviewed is False:
+        query = query.filter(Application.reviewed_at.is_(None))
+
+    total = query.count()
+
+    rows = (
+        query
+        .order_by(Application.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "ok": True,
+        "count": len(rows),
+        "total": total,
+        "filters": {
+            "status": status,
+            "application_type": application_type,
+            "event_id": event_id,
+            "reviewed": reviewed,
+            "limit": limit,
+            "offset": offset,
+        },
+        "applications": [
+            {
+                "id": str(app.id),
+                "event_id": app.event_id,
+                "user_id": app.user_id,
+                "application_type": app.application_type,
+                "status": app.status,
+                "data_json": app.data_json,
+                "created_at": app.created_at,
+                "updated_at": app.updated_at,
+                "reviewed_by": app.reviewed_by,
+                "reviewed_at": app.reviewed_at,
+                "review_notes": app.review_notes,
+                "reviewer_email": reviewer.email if reviewer else None,
+                "reviewer_display_name": reviewer.display_name if reviewer else None,
+            }
+            for app, reviewer in rows
+        ],
+    }
+
+@router.get("/applications/{application_id}")
+def admin_get_application(
+    application_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    Reviewer = aliased(User)
+
+    row = (
+        db.query(Application, Reviewer)
+        .outerjoin(Reviewer, Reviewer.id == Application.reviewed_by)
+        .filter(Application.id == application_id)
+        .first()
+    )
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    app, reviewer = row
+
+    return {
+        "ok": True,
+        "application": {
+            "id": str(app.id),
+            "event_id": app.event_id,
+            "user_id": app.user_id,
+            "application_type": app.application_type,
+            "status": app.status,
+            "data_json": app.data_json,
+            "created_at": app.created_at,
+            "updated_at": app.updated_at,
+            "reviewed_by": app.reviewed_by,
+            "reviewed_at": app.reviewed_at,
+            "review_notes": app.review_notes,
+            "reviewer_email": reviewer.email if reviewer else None,
+            "reviewer_display_name": reviewer.display_name if reviewer else None,
+        },
+    }
+
+@router.patch("/applications/{application_id}/status")
+def admin_update_application_status(
+    application_id: str,
+    payload: ApplicationStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    if payload.status not in APPLICATION_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    row = db.query(Application).filter(Application.id == application_id).first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    row.status = payload.status
+    row.reviewed_by = current_user.id
+    row.reviewed_at = datetime.utcnow()
+    row.review_notes = payload.review_notes
+    row.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(row)
+
+    return {
+        "ok": True,
+        "application_id": str(row.id),
+        "status": row.status,
+        "reviewed_by": row.reviewed_by,
+        "reviewed_at": row.reviewed_at,
+        "review_notes": row.review_notes,
+        "updated_at": row.updated_at,
     }

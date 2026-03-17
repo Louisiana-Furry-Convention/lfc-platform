@@ -1,12 +1,12 @@
 import json
 import uuid
 
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from lfc_api.core.deps import get_current_user
-from lfc_api.db.session import get_db
+from lfc_api.core.deps import get_db, get_current_user
 from lfc_api.models.application import Application
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -45,4 +45,64 @@ def create_application(
         "ok": True,
         "application_id": str(app.id),
         "status": app.status,
+    }
+
+
+@router.get("/me")
+def my_applications(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    rows = (
+        db.query(Application)
+        .filter(Application.user_id == current_user.id)
+        .order_by(Application.created_at.desc())
+        .all()
+    )
+
+    return {
+        "ok": True,
+        "applications": [
+            {
+                "id": str(row.id),
+                "event_id": row.event_id,
+                "application_type": row.application_type,
+                "status": row.status,
+                "data_json": row.data_json,
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+            }
+            for row in rows
+        ],
+    }
+
+@router.get("/me/{application_id}")
+def my_application_detail(
+    application_id: UUID,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    row = (
+        db.query(Application)
+        .filter(
+            Application.id == str(application_id),
+            Application.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    return {
+        "ok": True,
+        "application": {
+            "id": str(row.id),
+            "event_id": row.event_id,
+            "application_type": row.application_type,
+            "status": row.status,
+            "data_json": row.data_json,
+            "created_at": row.created_at,
+            "updated_at": row.updated_at,
+        },
     }

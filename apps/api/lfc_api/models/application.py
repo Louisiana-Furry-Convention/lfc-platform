@@ -17,6 +17,9 @@ class Application(Base):
 
     data_json = Column(Text, nullable=False)
 
+    reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    review_notes = Column(Text, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-

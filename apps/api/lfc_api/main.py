@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +20,8 @@ from lfc_api.routers import (
     system,
     scanner,
 )
+
+api_router = APIRouter()
 
 app = FastAPI(
     title="LFC Platform API",
