@@ -1,0 +1,21 @@
+name: Deploy Staging
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to staging over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/lfc-platform
+            ./scripts/deploy_release.sh staging ${GITHUB_REF_NAME}
