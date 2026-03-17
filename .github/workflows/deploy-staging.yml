@@ -17,5 +17,5 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           script: |
-            cd /opt/lfc-platform
+            cd ~/lfc-platform
             ./scripts/deploy_release.sh staging ${GITHUB_REF_NAME}
