@@ -1,477 +1,330 @@
 # LFC Platform
 
-Backend platform for **LouisiAnthro**, operated by **Louisiana Furry Convention LLC (LFC)**.
+Convention operations platform for **Louisiana Furry Convention (LouisiAnthro)**.
 
-This repository contains the backend API responsible for:
+The LFC Platform is designed to become the **central operating system for the convention**, powering ticketing, staff management, vendor management, panel scheduling, inventory, and operations tools.
 
-- attendee authentication
-- ticket sales and issuance
-- QR ticket generation
-- order management
-- staff check-in infrastructure
-- future RFID support
-- operational analytics
+Repository:
+https://github.com/Thorthedefender/lfc-platform
 
-Primary backend framework:
+---
 
-```
+# Current Version
+
+
+v0.1.5
+
+
+Environment example:
+
+```json
+{
+  "ok": true,
+  "app": "lfc-platform",
+  "version": "v0.1.5",
+  "environment": "dev"
+}
+Platform Status
+
+Core backend ticketing system is operational.
+
+Verified workflow:
+
+signup
+login
+create order
+admin complete order
+ticket issued
+ticket visible in /me/tickets
+QR generated
+check-in endpoint operational
+
+Current development environment:
+
+Raspberry Pi
+Ubuntu Server
 FastAPI
-SQLAlchemy
-SQLite (dev)
-```
+SQLite
+Quick Start
 
-The platform is designed to eventually support:
+Clone repository
 
-```
-- ticket sales
-- attendee dashboard
-- QR badge system
-- RFID wristband integration
-- check-in scanners
-- operations analytics
-- convention infrastructure tooling
-```
+git clone https://github.com/Thorthedefender/lfc-platform.git
+cd lfc-platform/apps/api
 
----
+Create virtual environment
 
-# Project Status
-
-Current stable backend tag:
-
-```
-v0.1.4
-```
-
-Status:
-
-```
-Backend ticketing system complete
-Ready for website integration
-Pending Clover payment credentials
-```
-
----
-
-# Repository Structure
-
-```
-apps/
- └── api/
-      ├── lfc_api/
-      │    ├── core/
-      │    │    ├── authz.py
-      │    │    ├── badge.py
-      │    │    ├── security.py
-      │    │    └── ticketing.py
-      │    │
-      │    ├── db/
-      │    │    ├── session.py
-      │    │    └── bootstrap.py
-      │    │
-      │    ├── models/
-      │    │    ├── user.py
-      │    │    ├── ticketing.py
-      │    │    ├── event.py
-      │    │    └── ledger.py
-      │    │
-      │    ├── routers/
-      │    │    ├── auth.py
-      │    │    ├── tickets.py
-      │    │    ├── checkin.py
-      │    │    └── payments.py
-      │    │
-      │    └── main.py
-      │
-      └── requirements.txt
-```
-
----
-
-# Local Development
-
-## 1. Create environment
-
-```
-cd apps/api
 python3 -m venv .venv
 source .venv/bin/activate
-```
 
-## 2. Install dependencies
+Install dependencies
 
-```
 pip install -r requirements.txt
-```
 
-## 3. Initialize database
+Run development server
 
-```
-python -m lfc_api.db.bootstrap
-```
-
-This creates:
-
-```
-events
-users
-orders
-tickets
-ticket_types
-checkins
-rfid_bands
-domain_events
-```
-
----
-
-# Run API
-
-```
 uvicorn lfc_api.main:app --reload
-```
 
-API default:
+API available at:
 
-```
 http://127.0.0.1:8000
-```
 
-Health check:
+Interactive docs:
 
-```
+http://127.0.0.1:8000/docs
+System Endpoints
+
+Health check
+
 GET /health
-```
 
----
+Example response
 
-# Core API Endpoints
+{
+  "ok": true,
+  "service": "lfc-platform-api",
+  "database": "ok",
+  "environment": "dev"
+}
 
-## Authentication
+Version info
 
-```
+GET /version
+
+Example response
+
+{
+  "ok": true,
+  "app": "lfc-platform",
+  "version": "v0.1.5",
+  "environment": "dev",
+  "commit": "abc123"
+}
+Authentication
+
+Signup
+
 POST /auth/signup
+
+Example request
+
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "full_name": "Example User"
+}
+
+Login
+
 POST /auth/login
-GET  /auth/me
-```
 
-## Ticket Catalog
+Example request
 
-```
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+Response returns a JWT token used for authenticated endpoints.
+
+Ticketing
+
+Public ticket catalog
+
 GET /tickets/public/ticket_types
-```
 
-Returns available registrations.
+Example response
 
-Example:
-
-```
 [
   {
-    "id": "lfc-2027-regular",
-    "name": "Regular Registration",
-    "price_cents": 7000
+    "id": "lfc-2027-early",
+    "event_id": "lfc-2027",
+    "name": "Early Registration",
+    "price_cents": 4500
   }
 ]
-```
 
----
+Create order
 
-## Order Creation
+POST /tickets/orders
 
-```
-POST /tickets/orders/create
-```
+Example request
 
-Example request:
-
-```
 {
-  "event_id": "lfc-2027",
-  "ticket_type_id": "lfc-2027-regular"
+  "ticket_type_id": "lfc-2027-early",
+  "quantity": 1
 }
-```
 
----
+Complete order (admin)
 
-## User Orders
+POST /tickets/orders/complete
+Tickets
 
-```
-GET /me/orders
-```
+User tickets
 
----
-
-## User Tickets
-
-```
 GET /me/tickets
-```
 
-Example:
+Tickets include QR tokens used for check-in.
 
-```
-[
-  {
-    "ticket_id": "uuid",
-    "ticket_type_name": "Regular Registration",
-    "status": "issued",
-    "qr_token": "ticketid|signature"
-  }
-]
-```
+Check-in System
 
----
+Validate ticket QR code
 
-## QR Ticket Rendering
+POST /checkin
 
-```
-GET /tickets/qr/{qr_token}
-```
+Example request
 
-Returns:
-
-```
-PNG QR image
-```
-
----
-
-# Check-In System
-
-Staff scanning endpoint:
-
-```
-POST /checkin/
-```
-
-Request:
-
-```
 {
-  "qr_token": "ticketid|signature"
+  "qr_token": "TOKEN_VALUE"
 }
-```
 
-Possible responses:
+Possible responses
 
-```
 checked_in
 already_checked_in
-invalid
-```
+invalid_ticket
+Scanner UI
 
----
+Basic check-in scanner interface
 
-# Ticket Issuance Logic
+GET /scan
 
-Tickets are issued through:
+Designed for:
 
-```
-lfc_api.core.ticketing.issue_ticket_for_order()
-```
+registration desk
+event room checkpoints
+RFID/QR scanning stations
+Payments
 
-Behavior:
+Clover integration scaffold implemented.
 
-```
-1 order = 1 ticket
-```
+Endpoints:
 
-Duplicate issuance protection is enforced:
+POST /payments/clover/create-order
+POST /payments/clover/webhook
+GET  /payments/clover/config-test
 
-```
-existing_ticket = db.query(Ticket).filter(Ticket.order_id == order.id).first()
-```
+Clover credentials are configured via environment variables.
 
----
+CLOVER_MERCHANT_ID
+CLOVER_API_KEY
+CLOVER_WEBHOOK_SECRET
+Environment Configuration
 
-# Database Bootstrap
+Environment files:
 
-Bootstrap script:
+.env.dev
+.env.staging
+.env.prod
 
-```
-python -m lfc_api.db.bootstrap
-```
+Example:
 
-Creates:
+APP_ENV=dev
+APP_VERSION=v0.1.5
 
-```
-default admin
-default event
-default ticket types
-```
+DATABASE_URL=sqlite:///./lfc.db
 
-Current event:
+SECRET_KEY=change-me
 
-```
-lfc-2027
-LouisiAnthro 2027
-```
+API_BASE_URL=http://127.0.0.1:8000
+FRONTEND_BASE_URL=http://127.0.0.1:3000
+Deployment
 
----
+Deployment is release-driven.
 
-# Release Notes
+Rules:
 
-## v0.1.4
+Development machines never auto-update
+Tagged releases deploy to staging
+Published releases deploy to production
 
-Major backend milestone.
+Deployment script
 
-Implemented:
+scripts/deploy_release.sh
 
-```
-attendee authentication
-ticket catalog endpoint
+Example usage
+
+./scripts/deploy_release.sh staging v0.1.5
+
+GitHub Actions workflows
+
+.github/workflows/deploy-staging.yml
+.github/workflows/deploy-production.yml
+Project Roadmap
+v0.1.x   Ticketing foundation + deployment hardening
+v0.2.x   Applications system
+v0.3.x   Operations modules
+v0.4.x   E-commerce
+v0.5.x   Client-side apps
+v1.0.0   Full convention deployment
+Release History
+v0.1.0-alpha
+Initial platform deployment
+Basic API structure
+
+v0.1.1-alpha
+Authentication
+check-in system
+ticket issuance
+
+v0.1.2
+API stability improvements
+database migrations
+
+v0.1.3-beta
+ticket catalog
 order creation
-attendee order dashboard
-ticket issuance system
-QR ticket generation
+payment preparation
+
+v0.1.4
+complete ticket lifecycle
+QR generation
 admin order completion
-duplicate-safe ticket issuance
-database bootstrap initialization
-API documentation for web integration
-```
 
-Status:
-
-```
-Backend feature complete for ticket flow
-Waiting on website integration
-Waiting on Clover production credentials
-```
-
----
-
-## v0.1.3-beta
-
-Implemented:
-
-```
-ticket types
-basic order model
-QR token system
-initial ticket issuance logic
-admin tooling
-```
-
-Focus:
-
-```
-ticketing foundation
-```
-
----
-
-## v0.1.2-alpha
-
-Implemented:
-
-```
-staff role promotion tools
-secure check-in endpoint
-JWT authentication wiring
-database seeding fixes
-```
-
-Focus:
-
-```
-internal admin infrastructure
-```
-
----
-
-## v0.1.1-alpha
-
-Implemented:
-
-```
-initial admin panel endpoints
-staff check-in routing
-live analytics stubs
-```
-
-Focus:
-
-```
-operations backbone
-```
-
----
-
-## v0.1.0-alpha
-
-Initial platform foundation.
-
-Implemented:
-
-```
-FastAPI backend skeleton
-SQLAlchemy models
-user authentication
-database session management
-initial event structure
-```
-
-Focus:
-
-```
-core architecture
-```
-
----
-
-# Planned Features
-
-Next milestone:
-
-```
 v0.1.5
-```
+deployment automation
+environment configuration
+system health/version endpoints
+clover payment scaffold
+scanner UI
+auth cleanup
+Next Milestone
+v0.2.0
+Applications System
 
-Planned work:
+Planned features
 
-```
-Clover checkout integration
-payment webhook processing
-staff check-in scanner UI
-RFID assignment endpoints
-```
+staff applications
+vendor applications
+panel submissions
+application review system
+attachment uploads
+status workflows
+Long-Term Vision
 
-Longer term goals:
+The LFC Platform will become the central operating system for the convention.
 
-```
-RFID wristband tracking
-room attendance analytics
-dealer/vendor management
-panel scheduling integration
-operations dashboards
-```
+Future modules
 
----
+ticketing
+staff management
+vendor management
+panel scheduling
+inventory management
+merchandise
+e-commerce
+RFID attendance tracking
+operations analytics
 
-# License
+Accessible via
 
-Internal project for:
+public website
+staff/admin web interface
+mobile operations tools
+future desktop client
+License
 
-```
-Louisiana Furry Convention LLC
-```
+Internal project for Louisiana Furry Convention LLC.
 
----
-
-# Maintainer
-
-Primary developer:
-
-```
-Joe / Thor
-Co-Founder / CEO, CFO, CSO, J-CTO
-Louisiana Furry Convention LLC
-```
-
-Project repository:
-
-```
-https://github.com/Thorthedefender/lfc-platform
-```
 
 ---
