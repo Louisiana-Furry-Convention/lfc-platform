@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from lfc_api.db.init_db import init_db
 from lfc_api.routers import (
     admin,
+    applications,
     attendance,
     auth,
     checkin,
@@ -20,9 +21,11 @@ from lfc_api.routers import (
     scanner,
 )
 
+api_router = APIRouter()
+
 app = FastAPI(
     title="LFC Platform API",
-    version="0.1.5",
+    version="0.2.0",
 )
 
 # Ensure DB schema exists before serving requests
@@ -40,6 +43,7 @@ app.include_router(rfid.router)
 app.include_router(payments.router)
 app.include_router(system.router)
 app.include_router(scanner.router)
+app.include_router(applications.router)
 
 app.add_middleware(
     CORSMiddleware,
