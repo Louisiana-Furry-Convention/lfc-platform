@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     app_env: str = "dev"
     app_name: str = "lfc-platform"
-    app_version: str = "v0.1.5-dev"
+    app_version: str = "v0.1.5"
 
     database_url: str = "sqlite:///./lfc.db"
     secret_key: str = "change-me"
