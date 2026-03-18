@@ -97,7 +97,7 @@ export function logout(redirectTo = "/login.html") {
   window.location.href = redirectTo;
 }
 
-export function redirectIfLoggedIn(defaultPath = "/admin-apps.html") {
+export function redirectIfLoggedIn(defaultPath = "/admin.html") {
   if (isLoggedIn()) {
     window.location.href = defaultPath;
   }

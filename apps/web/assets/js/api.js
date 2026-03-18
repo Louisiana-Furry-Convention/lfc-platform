@@ -108,12 +108,25 @@ export const api = {
     return apiGet(`/admin/applications${query ? `?${query}` : ""}`);
   },
 
-  updateApplicationStatus(applicationId, status, reviewNotes = null) {
+  getApplication(applicationId) {
+    return apiGet(`/admin/applications/${applicationId}`);
+  },
+
+  updateApplicationStatus(applicationId, status) {
     return apiPatch(`/admin/applications/${applicationId}/status`, {
       status,
-      review_notes: reviewNotes,
     });
   },
-};
+
+  updateApplicationStage(applicationId, currentStage) {
+    return apiPatch(`/admin/applications/${applicationId}/stage`, {
+      current_stage: currentStage,
+    });
+  },
+
+  createApplicationReview(applicationId, payload) {
+    return apiPost(`/admin/applications/${applicationId}/reviews`, payload);
+  },
+}
 
 export { API_BASE_URL };

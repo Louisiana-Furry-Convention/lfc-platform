@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="/assets/css/components.css" />
   <link rel="stylesheet" href="/assets/css/pages/tickets.css" />
 </head>
+<script src="/vendor/qrcode.min.js"></script>
+<script type="module" src="/assets/js/pages/tickets.js"></script>
 <body>
   <main class="page">
     <header class="page-header">
@@ -41,6 +43,38 @@
 
       <p id="status"></p>
     </section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Printable Badge Preview</h2>
+    <div class="badge-controls">
+      <label for="badge-stock">Badge Stock</label>
+      <select id="badge-stock">
+        <option value="4x6">4x6 Badge</option>
+        <option value="3x4">3x4 Badge</option>
+        <option value="half-letter">Half Letter</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="badge-preview" class="badge-preview">
+    <p>No badge generated yet.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Generated Ticket</h2>
+  <div id="qr-output" class="ticket-output">
+    <p>No ticket issued yet.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Printable Badge Preview</h2>
+  <div id="badge-preview" class="badge-preview">
+    <p>No badge generated yet.</p>
+  </div>
+</section>
 
     <section class="panel">
       <h2>Generated QR</h2>

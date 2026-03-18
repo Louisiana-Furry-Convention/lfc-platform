@@ -8,3 +8,24 @@
   align-items: center;
   justify-content: center;
 }
+
+.top-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #2a2a2a;
+  background: #151515;
+}
+
+.top-nav a {
+  color: #ddd;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #202020;
+}
+
+.top-nav a:hover {
+  background: #2a2a2a;
+}
