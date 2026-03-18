@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Admin Applications</title>
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/pages/admin-apps.css" />
+</head>
+<body>
+  <main class="page page-admin-apps">
+    <header class="page-header">
+      <div>
+        <h1>Application Queue</h1>
+        <p>Review and manage submissions</p>
+      </div>
+      <nav class="page-actions">
+        <a href="/admin.html" class="button secondary">Back to Dashboard</a>
+      </nav>
+    </header>
+
+    <section class="panel filters-panel">
+      <div class="filters-grid">
+        <label>
+          <span>Status</span>
+          <select id="filter-status">
+            <option value="">All</option>
+            <option value="submitted">Submitted</option>
+            <option value="approved">Approved</option>
+            <option value="denied">Denied</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Type</span>
+          <select id="filter-type">
+            <option value="">All</option>
+            <option value="staff">Staff</option>
+            <option value="vendor">Vendor</option>
+            <option value="panel">Panel</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Reviewed</span>
+          <select id="filter-reviewed">
+            <option value="">All</option>
+            <option value="true">Reviewed</option>
+            <option value="false">Unreviewed</option>
+          </select>
+        </label>
+
+        <label class="filter-search">
+          <span>Search</span>
+          <input id="filter-search" type="text" placeholder="Name, email, notes..." />
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="table-toolbar">
+        <div id="queue-summary">Loading…</div>
+        <button id="refresh-btn" class="button secondary">Refresh</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Submitted</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Reviewed</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="applications-tbody">
+            <tr>
+              <td colspan="6">Loading applications…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="pagination" class="pagination"></div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/admin-apps.js"></script>
+</body>
+</html>

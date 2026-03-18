@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LFC Platform - Login</title>
 
-  <link rel="stylesheet" href="./assets/css/base.css" />
-  <link rel="stylesheet" href="./assets/css/layout.css" />
-  <link rel="stylesheet" href="./assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
 </head>
 <body>
   <main class="page page-center">
@@ -17,40 +17,40 @@
         <p>Sign in to continue</p>
       </div>
 
-      <form id="login-form" class="form">
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            placeholder="you@example.com"
-          />
-        </div>
+     <form id="login-form" class="form" onsubmit="return false;">
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input
+      id="email"
+      name="email"
+      type="email"
+      autocomplete="email"
+      required
+      placeholder="you@example.com"
+    />
+  </div>
 
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="current-password"
-            required
-            placeholder="Enter your password"
-          />
-        </div>
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input
+      id="password"
+      name="password"
+      type="password"
+      autocomplete="current-password"
+      required
+      placeholder="Enter your password"
+    />
+  </div>
 
-        <button id="login-button" type="submit" class="button button-primary">
-          Sign In
-        </button>
+  <button id="login-button" type="button" class="button button-primary">
+    Sign In
+  </button>
 
-        <p id="login-status" class="status-message" aria-live="polite"></p>
-      </form>
+  <p id="login-status" class="status-message" aria-live="polite"></p>
+</form>
     </section>
   </main>
 
-  <script type="module" src="./assets/js/pages/login.js"></script>
+  <script type="module" src="/assets/js/pages/login.js"></script>
 </body>
 </html>

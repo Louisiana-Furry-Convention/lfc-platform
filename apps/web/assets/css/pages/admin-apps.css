@@ -1,0 +1,104 @@
+.page-admin-apps {
+  padding: 24px;
+}
+
+.page-header,
+.table-toolbar,
+.filters-grid,
+.row-actions,
+.pagination {
+  display: flex;
+  gap: 12px;
+}
+
+.page-header,
+.table-toolbar {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filters-panel {
+  margin-bottom: 16px;
+}
+
+.filters-grid {
+  flex-wrap: wrap;
+}
+
+.filters-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.filter-search {
+  flex: 1;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  vertical-align: top;
+  text-align: left;
+}
+
+.cell-primary {
+  font-weight: 600;
+}
+
+.cell-secondary {
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.08);
+}
+
+.badge.success { background: rgba(0, 128, 0, 0.2); }
+.badge.danger  { background: rgba(180, 0, 0, 0.2); }
+.badge.warning { background: rgba(180, 120, 0, 0.2); }
+.badge.info    { background: rgba(0, 90, 180, 0.2); }
+.badge.muted   { background: rgba(120, 120, 120, 0.2); }
+
+.row-actions {
+  flex-wrap: wrap;
+}
+
+.details-row td {
+  padding-top: 0;
+}
+
+.details-card {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+}
+
+.pagination {
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.button.tiny {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}

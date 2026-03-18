@@ -1,0 +1,14 @@
+.page {
+  padding: 24px;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+#qr-output {
+  padding: 16px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+}

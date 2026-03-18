@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LFC Ticket Issuing</title>
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/tickets.css" />
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <div>
+        <h1>Ticket Issuing</h1>
+        <p>Create and assign tickets</p>
+      </div>
+      <a href="/admin.html" class="button secondary">Dashboard</a>
+    </header>
+
+    <section class="panel">
+      <form id="ticket-form" class="form">
+        <div class="form-group">
+          <label>Email</label>
+          <input id="email" required placeholder="attendee@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label>Display Name</label>
+          <input id="display-name" placeholder="Optional name" />
+        </div>
+
+        <div class="form-group">
+          <label>Ticket Type</label>
+          <select id="ticket-type"></select>
+        </div>
+
+        <button class="button button-primary">Issue Ticket</button>
+      </form>
+
+      <p id="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2>Generated QR</h2>
+      <div id="qr-output">No ticket issued yet.</div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/tickets.js"></script>
+</body>
+</html>

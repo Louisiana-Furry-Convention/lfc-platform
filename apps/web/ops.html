@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Operations Dashboard</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/ops.css" />
+</head>
+<body>
+  <main class="page page-ops">
+    <header class="page-header">
+      <div>
+        <h1>Operations Dashboard</h1>
+        <p>Live convention command center</p>
+      </div>
+      <div class="page-actions">
+        <a href="/admin.html" class="button secondary">Dashboard</a>
+        <button id="refresh-btn" class="button secondary">Refresh</button>
+      </div>
+    </header>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Tickets Issued</div>
+        <div id="stat-issued" class="stat-value">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Checked In</div>
+        <div id="stat-checked-in" class="stat-value">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last 5 Minutes</div>
+        <div id="stat-last-5" class="stat-value">—</div>
+      </div>
+      <div id="surge-card" class="stat-card">
+        <div class="stat-label">Arrival Surge</div>
+        <div id="stat-surge" class="stat-value">—</div>
+      </div>
+    </section>
+
+    <section class="ops-grid">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Live Feed</h2>
+        </div>
+        <div id="live-feed" class="feed-list">Loading…</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Lane Analytics</h2>
+        </div>
+        <div id="lane-analytics" class="lane-list">Loading…</div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/ops.js"></script>
+</body>
+</html>
