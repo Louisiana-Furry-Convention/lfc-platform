@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Admin Applications</title>
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/pages/admin-apps.css" />
+</head>
+<body>
+  <main class="page page-admin-apps">
+    <header class="page-header">
+      <div>
+        <h1>Application Queue</h1>
+        <p>Review and manage submissions</p>
+      </div>
+      <nav class="page-actions">
+        <a href="/admin.html" class="button secondary">Back to Dashboard</a>
+      </nav>
+    </header>
+
+    <section class="panel filters-panel">
+      <div class="filters-grid">
+        <label>
+          <span>Status</span>
+          <select id="filter-status">
+            <option value="">All</option>
+            <option value="submitted">Submitted</option>
+            <option value="approved">Approved</option>
+            <option value="declined">Declined</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Type</span>
+          <select id="filter-type">
+            <option value="">All</option>
+            <option value="staff">Staff</option>
+            <option value="vendor">Vendor</option>
+            <option value="panel">Panel</option>
+          </select>
+        </label>
+
+        <label class="filter-search">
+          <span>Search</span>
+          <input id="filter-search" type="text" placeholder="Name, email, notes..." />
+        </label>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="table-toolbar">
+        <div id="queue-summary">Loading…</div>
+        <button id="refresh-btn" class="button secondary">Refresh</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Submitted</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Stage</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="applications-tbody">
+            <tr>
+              <td colspan="6">Loading applications…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="pagination" class="pagination"></div>
+    </section>
+  </main>
+
+<div id="review-panel" class="review-panel hidden">
+  <div class="review-header">
+    <h2>Application Review</h2>
+    <button id="close-review" class="button secondary" type="button">Close</button>
+  </div>
+
+  <div id="review-content" class="review-content">
+    <p>Select an application to review.</p>
+  </div>
+
+  <div class="review-form">
+    <label class="form-group">
+      <span>Stage</span>
+      <select id="review-stage">
+        <option value="submitted">Submitted</option>
+        <option value="hr_interview">HR Interview</option>
+        <option value="lead_interview">Lead Interview</option>
+        <option value="director_review">Director Review</option>
+        <option value="officer_review">Officer Review</option>
+        <option value="hr_onboarding">HR Onboarding</option>
+        <option value="review">Review</option>
+        <option value="complete">Complete</option>
+      </select>
+    </label>
+
+    <label class="form-group">
+      <span>Reviewer Notes</span>
+      <textarea id="review-notes" rows="8" placeholder="Enter review notes..."></textarea>
+    </label>
+  </div>
+
+  <div class="review-actions">
+    <button id="review-approve" class="button success" type="button">Approve</button>
+    <button id="review-decline" class="button danger" type="button">Decline</button>
+    <button id="review-under" class="button secondary" type="button">Under Review</button>
+    <button id="review-save" class="button" type="button">Save Review</button>
+  </div>
+</div>
+
+  <script type="module" src="/assets/js/pages/admin-apps.js"></script>
+</body>
+</html>

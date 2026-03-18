@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Admin Dashboard</title>
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/admin.css" />
+</head>
+<body>
+  <header class="page-header">
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Operations overview and quick actions</p>
+    </div>
+    <div class="page-actions">
+      <button id="logout-button" class="button secondary">Logout</button>
+    </div>
+  </header>
+
+  <nav class="top-nav">
+    <a href="/admin.html">Dashboard</a>
+    <a href="/admin-apps.html">Applications</a>
+    <a href="/applications.html">Check-In</a>
+    <a href="/checkins.html">Check-In Activity</a>
+    <a href="/attendees.html">Attendees</a>
+    <a href="/stats.html">Stats</a>
+    <a href="/ops.html">Ops</a>
+    <a href="/tickets.html">Tickets</a>
+  </nav>
+
+  <main class="page page-admin">
+    <section class="panel dashboard-grid">
+      <a class="dashboard-card" href="/admin-apps.html">
+        <h2>Applications Queue</h2>
+        <p>Review, approve, decline, and track submissions.</p>
+      </a>
+
+      <a class="dashboard-card" href="/applications.html">
+        <h2>Registration / Check-In</h2>
+        <p>Run live attendee check-in.</p>
+      </a>
+
+      <a class="dashboard-card" href="/checkins.html">
+        <h2>Check-In Activity</h2>
+        <p>View recent registration activity.</p>
+      </a>
+
+      <a class="dashboard-card" href="/attendees.html">
+        <h2>Attendees</h2>
+        <p>Browse attendee and ticket data.</p>
+      </a>
+
+      <a class="dashboard-card" href="/stats.html">
+        <h2>Stats</h2>
+        <p>Quick numeric overview.</p>
+      </a>
+
+      <a class="dashboard-card" href="/ops.html">
+        <h2>Operations Dashboard</h2>
+        <p>Live feed, lanes, surge, and metrics.</p>
+      </a>
+
+      <a class="dashboard-card" href="/tickets.html">
+        <h2>Ticket Issuing</h2>
+        <p>Create and assign tickets with QR codes.</p>
+      </a>
+    </section>
+
+    <section class="panel">
+      <h2>Session</h2>
+      <div id="admin-session-status">Loading session…</div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/admin.js?v=4"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Platform - Admin</title>
+
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/layout.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="card">
+      <div class="card-header">
+        <h1>Admin Dashboard</h1>
+        <p id="welcome-text">Loading user...</p>
+      </div>
+
+      <div class="dashboard-actions">
+        <a class="button button-primary" href="./admin-apps.html">Application Queue</a>
+        <a class="button" href="./applications.html">My Applications</a>
+        <button id="logout-button" class="button">Logout</button>
+      </div>
+
+      <div class="info-block">
+        <h2>Current Session</h2>
+        <pre id="user-output">Loading...</pre>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./assets/js/pages/admin.js"></script>
+</body>
+</html>

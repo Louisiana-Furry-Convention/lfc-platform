@@ -1,0 +1,50 @@
+.page-attendees {
+  padding: 24px;
+}
+
+.page-header,
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.table-toolbar input {
+  flex: 1;
+  min-width: 240px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.08);
+}
+
+.badge.success {
+  background: rgba(0, 160, 80, 0.18);
+}
+
+.badge.warning {
+  background: rgba(210, 140, 0, 0.18);
+}

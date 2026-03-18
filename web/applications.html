@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Platform - My Applications</title>
+
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/layout.css" />
+  <link rel="stylesheet" href="./assets/css/components.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="card page-card">
+      <div class="card-header">
+        <h1>My Applications</h1>
+        <p id="applications-status">Loading...</p>
+      </div>
+
+      <div class="dashboard-actions">
+        <a class="button" href="./admin.html">Dashboard</a>
+        <button id="logout-button" class="button">Logout</button>
+      </div>
+
+      <div class="info-block">
+        <h2>Submit Application</h2>
+
+        <form id="application-form" class="form">
+          <div class="form-group">
+            <label for="event_id">Event ID</label>
+            <input id="event_id" name="event_id" type="text" required />
+          </div>
+
+          <div class="form-group">
+            <label for="application_type">Application Type</label>
+            <input id="application_type" name="application_type" type="text" required />
+          </div>
+
+          <div class="form-group">
+            <label for="payload_json">Payload JSON</label>
+            <textarea id="payload_json" name="payload_json" rows="8" placeholder='{"notes":"example"}'></textarea>
+          </div>
+
+          <button type="submit" class="button button-primary">Submit Application</button>
+          <p id="submit-status" class="status-message"></p>
+        </form>
+      </div>
+
+      <div class="info-block">
+        <h2>My Submitted Applications</h2>
+        <pre id="applications-output">Loading...</pre>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./assets/js/pages/applications.js"></script>
+</body>
+</html>

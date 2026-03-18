@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LFC Ticket Issuing</title>
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/tickets.css" />
+</head>
+<script src="/vendor/qrcode.min.js"></script>
+<script type="module" src="/assets/js/pages/tickets.js"></script>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <div>
+        <h1>Ticket Issuing</h1>
+        <p>Create and assign tickets</p>
+      </div>
+      <a href="/admin.html" class="button secondary">Dashboard</a>
+    </header>
+
+    <section class="panel">
+      <form id="ticket-form" class="form">
+        <div class="form-group">
+          <label>Email</label>
+          <input id="email" required placeholder="attendee@email.com" />
+        </div>
+
+        <div class="form-group">
+          <label>Display Name</label>
+          <input id="display-name" placeholder="Optional name" />
+        </div>
+
+        <div class="form-group">
+          <label>Ticket Type</label>
+          <select id="ticket-type"></select>
+        </div>
+
+        <button class="button button-primary">Issue Ticket</button>
+      </form>
+
+      <p id="status"></p>
+    </section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Printable Badge Preview</h2>
+    <div class="badge-controls">
+      <label for="badge-stock">Badge Stock</label>
+      <select id="badge-stock">
+        <option value="4x6">4x6 Badge</option>
+        <option value="3x4">3x4 Badge</option>
+        <option value="half-letter">Half Letter</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="badge-preview" class="badge-preview">
+    <p>No badge generated yet.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Generated Ticket</h2>
+  <div id="qr-output" class="ticket-output">
+    <p>No ticket issued yet.</p>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>Printable Badge Preview</h2>
+  <div id="badge-preview" class="badge-preview">
+    <p>No badge generated yet.</p>
+  </div>
+</section>
+
+    <section class="panel">
+      <h2>Generated QR</h2>
+      <div id="qr-output">No ticket issued yet.</div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/tickets.js"></script>
+</body>
+</html>

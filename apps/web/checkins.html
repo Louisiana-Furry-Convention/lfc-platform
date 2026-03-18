@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Check-In Activity</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/checkins.css" />
+</head>
+<body>
+  <main class="page page-checkins">
+    <header class="page-header">
+      <div>
+        <h1>Recent Check-Ins</h1>
+        <p>Live registration activity</p>
+      </div>
+      <div class="page-actions">
+        <a href="/admin.html" class="button secondary">Dashboard</a>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="table-toolbar">
+        <div id="checkins-summary">Loading…</div>
+        <button id="refresh-btn" class="button secondary">Refresh</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Attendee</th>
+              <th>Ticket Type</th>
+              <th>Lane</th>
+              <th>Staff</th>
+            </tr>
+          </thead>
+          <tbody id="checkins-tbody">
+            <tr><td colspan="5">Loading check-ins…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/checkins.js"></script>
+</body>
+</html>

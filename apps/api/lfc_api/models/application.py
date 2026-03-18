@@ -1,25 +1,42 @@
-import uuid
-from sqlalchemy import Column, String, DateTime, ForeignKey, Text
-from sqlalchemy.sql import func
+# apps/api/lfc_api/models/application.py
 
-from lfc_api.models.base import Base
+from datetime import datetime
+from sqlalchemy import DateTime, ForeignKey, Index, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.types import JSON
 
+from lfc_api.models.base import Base  # adjust if needed
 
 class Application(Base):
     __tablename__ = "applications"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    event_id = Column(String(50), nullable=False)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    event_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
 
-    application_type = Column(String(30), nullable=False)
-    status = Column(String(30), nullable=False, default="submitted")
+    application_type: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    current_stage: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
 
-    data_json = Column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    target_department: Mapped[str | None] = mapped_column(String, nullable=True)
+    target_role: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    reviewed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
-    reviewed_at = Column(DateTime(timezone=True), nullable=True)
-    review_notes = Column(Text, nullable=True)
+    data_json: Mapped[dict] = mapped_column(JSON, nullable=False)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    withdrawn_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    user = relationship("User")
+    reviews = relationship(
+        "ApplicationReview",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        order_by="ApplicationReview.created_at.desc()",
+    )
+
+    __table_args__ = (
+        Index("ix_applications_event_type_status", "event_id", "application_type", "status"),
+    )

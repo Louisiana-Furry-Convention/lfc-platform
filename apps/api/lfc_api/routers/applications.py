@@ -1,108 +1,62 @@
-import json
-import uuid
+# apps/api/lfc_api/routers/applications.py
 
-from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from lfc_api.core.deps import get_db, get_current_user
-from lfc_api.models.application import Application
+from lfc_api.db.session import get_db  # adjust
+from lfc_api.core.deps import get_current_user  # adjust
+from lfc_api.schemas.application import (
+    ApplicationCreate,
+    ApplicationListItem,
+    ApplicationRead,
+    ApplicationWithdrawResponse,
+)
+from lfc_api.services.applications import (
+    create_application,
+    get_user_application,
+    list_user_applications,
+    withdraw_application,
+)
 
-router = APIRouter(prefix="/applications", tags=["applications"])
+router = APIRouter(tags=["applications"])
 
 
-class ApplicationCreate(BaseModel):
-    event_id: str
-    application_type: str
-    data: dict
-
-
-@router.post("")
-def create_application(
+@router.post("/applications", response_model=ApplicationRead)
+def post_application(
     payload: ApplicationCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    allowed_types = {"staff", "vendor", "panel"}
-    if payload.application_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="invalid application_type")
+    return create_application(db, current_user, payload)
 
-    app = Application(
-        id=str(uuid.uuid4()),
-        event_id=payload.event_id,
-        user_id=current_user.id,
-        application_type=payload.application_type,
-        status="submitted",
-        data_json=json.dumps(payload.data),
-    )
 
-    db.add(app)
-    db.commit()
-    db.refresh(app)
+@router.get("/me/applications", response_model=list[ApplicationListItem])
+def get_my_applications(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return list_user_applications(db, current_user.id)
 
+
+@router.get("/me/applications/{application_id}", response_model=ApplicationRead)
+def get_my_application(
+    application_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return get_user_application(db, current_user.id, application_id)
+
+
+@router.post("/applications/{application_id}/withdraw", response_model=ApplicationWithdrawResponse)
+def post_withdraw_application(
+    application_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    app = withdraw_application(db, current_user.id, application_id)
     return {
         "ok": True,
-        "application_id": str(app.id),
+        "application_id": app.id,
         "status": app.status,
-    }
-
-
-@router.get("/me")
-def my_applications(
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    rows = (
-        db.query(Application)
-        .filter(Application.user_id == current_user.id)
-        .order_by(Application.created_at.desc())
-        .all()
-    )
-
-    return {
-        "ok": True,
-        "applications": [
-            {
-                "id": str(row.id),
-                "event_id": row.event_id,
-                "application_type": row.application_type,
-                "status": row.status,
-                "data_json": row.data_json,
-                "created_at": row.created_at,
-                "updated_at": row.updated_at,
-            }
-            for row in rows
-        ],
-    }
-
-@router.get("/me/{application_id}")
-def my_application_detail(
-    application_id: UUID,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-    row = (
-        db.query(Application)
-        .filter(
-            Application.id == str(application_id),
-            Application.user_id == current_user.id,
-        )
-        .first()
-    )
-
-    if not row:
-        raise HTTPException(status_code=404, detail="Application not found")
-
-    return {
-        "ok": True,
-        "application": {
-            "id": str(row.id),
-            "event_id": row.event_id,
-            "application_type": row.application_type,
-            "status": row.status,
-            "data_json": row.data_json,
-            "created_at": row.created_at,
-            "updated_at": row.updated_at,
-        },
+        "withdrawn_at": app.withdrawn_at,
     }

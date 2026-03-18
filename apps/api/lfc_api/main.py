@@ -9,6 +9,7 @@ from lfc_api.db.init_db import init_db
 from lfc_api.routers import (
     admin,
     applications,
+    admin_applications,
     attendance,
     auth,
     checkin,
@@ -25,7 +26,7 @@ api_router = APIRouter()
 
 app = FastAPI(
     title="LFC Platform API",
-    version="0.2.0",
+    version="0.2.1",
 )
 
 # Ensure DB schema exists before serving requests
@@ -44,6 +45,7 @@ app.include_router(payments.router)
 app.include_router(system.router)
 app.include_router(scanner.router)
 app.include_router(applications.router)
+app.include_router(admin_applications.router)
 
 app.add_middleware(
     CORSMiddleware,
