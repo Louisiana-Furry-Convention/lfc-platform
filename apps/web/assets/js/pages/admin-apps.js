@@ -1,6 +1,8 @@
 import { api, apiGet } from "../api.js";
 import { requireAuth } from "../auth.js";
 
+const TERMINAL_STATUSES = ["approved", "declined", "waitlisted", "withdrawn"];
+
 const state = {
   items: [],
   total: 0,
@@ -23,31 +25,9 @@ const STAGE_SEQUENCES = {
     "hr_onboarding",
     "complete",
   ],
-  vendor: [
-    "submitted",
-    "review",
-    "complete",
-  ],
-  panel: [
-    "submitted",
-    "review",
-    "complete",
-  ],
+  vendor: ["submitted", "review", "complete"],
+  panel: ["submitted", "review", "complete"],
 };
-
-function getStageSequence(type) {
-  return STAGE_SEQUENCES[type] || ["submitted", "review", "complete"];
-}
-
-function renderStageOptions(app) {
-  const sequence = getStageSequence(app.application_type);
-  const current = app.current_stage || sequence[0];
-
-  return sequence.map((stage) => {
-    const selected = stage === current ? "selected" : "";
-    return `<option value="${escapeHtml(stage)}" ${selected}>${escapeHtml(stage)}</option>`;
-  }).join("");
-}
 
 const els = {
   tbody: document.getElementById("applications-tbody"),
@@ -57,12 +37,14 @@ const els = {
   filterStatus: document.getElementById("filter-status"),
   filterType: document.getElementById("filter-type"),
   filterSearch: document.getElementById("filter-search"),
+  reviewContent: document.getElementById("review-content"),
+  reviewStage: document.getElementById("review-stage"),
+  reviewNotes: document.getElementById("review-notes"),
+  reviewApprove: document.getElementById("review-approve"),
+  reviewDecline: document.getElementById("review-decline"),
+  reviewUnder: document.getElementById("review-under"),
+  reviewSave: document.getElementById("review-save"),
 };
-
-const reviewPanel = document.getElementById("review-panel");
-const reviewContent = document.getElementById("review-content");
-const reviewStage = document.getElementById("review-stage");
-const reviewNotes = document.getElementById("review-notes");
 
 let currentApplicationId = null;
 let currentApplication = null;
@@ -81,23 +63,83 @@ function formatDate(value) {
   try {
     return new Date(value).toLocaleString();
   } catch {
-    return value;
+    return String(value);
   }
+}
+
+function formatStatusLabel(status) {
+  const map = {
+    draft: "Draft",
+    submitted: "Submitted",
+    under_review: "Under Review",
+    approved: "Approved",
+    declined: "Declined",
+    waitlisted: "Waitlisted",
+    withdrawn: "Withdrawn",
+  };
+
+  return map[status] || status || "—";
+}
+
+function formatDecisionLabel(decision) {
+  const map = {
+    note: "Note",
+    under_review: "Under Review",
+    approved: "Approved",
+    declined: "Declined",
+    waitlisted: "Waitlisted",
+    withdrawn: "Withdrawn",
+  };
+
+  return map[decision] || decision || "Note";
+}
+
+function formatStageLabel(stage) {
+  const map = {
+    submitted: "Submitted",
+    hr_interview: "HR Interview",
+    lead_interview: "Lead Interview",
+    director_review: "Director Review",
+    officer_review: "Officer Review",
+    hr_onboarding: "HR Onboarding",
+    review: "Review",
+    complete: "Complete",
+  };
+
+  return map[stage] || stage || "—";
 }
 
 function badgeClass(type, value) {
   const safe = String(value || "").toLowerCase();
 
-  if (type === "status") {
+  if (type === "status" || type === "decision") {
     if (safe === "approved") return "badge success";
     if (safe === "declined") return "badge danger";
     if (safe === "waitlisted") return "badge warning";
     if (safe === "submitted") return "badge warning";
     if (safe === "under_review") return "badge info";
     if (safe === "withdrawn") return "badge muted";
+    if (safe === "draft") return "badge muted";
+    if (safe === "note") return "badge";
   }
 
   return "badge";
+}
+
+function getStageSequence(type) {
+  return STAGE_SEQUENCES[type] || ["submitted", "review", "complete"];
+}
+
+function renderStageOptions(app) {
+  const sequence = getStageSequence(app.application_type);
+  const current = app.current_stage || sequence[0];
+
+  return sequence
+    .map((stage) => {
+      const selected = stage === current ? "selected" : "";
+      return `<option value="${escapeHtml(stage)}" ${selected}>${escapeHtml(formatStageLabel(stage))}</option>`;
+    })
+    .join("");
 }
 
 function getApplicantName(app) {
@@ -119,20 +161,37 @@ function getApplicantEmail(app) {
   return data.email || "—";
 }
 
-function getDetailsText(app) {
+function getApplicantSubline(app) {
   const data = app.data_json || {};
 
-  if (typeof data === "string") return data;
-  if (data.experience) return data.experience;
-  if (data.panel_description) return data.panel_description;
-  if (data.inventory_summary) return data.inventory_summary;
+  if (app.application_type === "staff") {
+    const department = app.target_department || data.department || "—";
+    const role = app.target_role || data.target_role || data.role || "—";
+    return `Department: ${department} | Role: ${role}`;
+  }
 
-  return JSON.stringify(data, null, 2);
+  if (app.application_type === "vendor") {
+    return `Business: ${data.business_name || "—"}`;
+  }
+
+  if (app.application_type === "panel") {
+    return `Panel: ${data.panel_title || app.title || "—"}`;
+  }
+
+  return "";
+}
+
+function field(label, value) {
+  return `
+    <div class="review-field">
+      <div class="review-label">${escapeHtml(label)}</div>
+      <div class="review-value">${escapeHtml(value ?? "—")}</div>
+    </div>
+  `;
 }
 
 function rowTemplate(app) {
   const submitted = app.submitted_at || app.created_at;
-  const details = getDetailsText(app);
 
   return `
     <tr data-id="${escapeHtml(app.id)}">
@@ -140,23 +199,14 @@ function rowTemplate(app) {
       <td>
         <div class="cell-primary">${escapeHtml(getApplicantName(app))}</div>
         <div class="cell-secondary">${escapeHtml(getApplicantEmail(app))}</div>
+        <div class="cell-tertiary">${escapeHtml(getApplicantSubline(app))}</div>
       </td>
       <td>${escapeHtml(app.application_type || "—")}</td>
-      <td><span class="${badgeClass("status", app.status)}">${escapeHtml(app.status || "—")}</span></td>
-      <td>${escapeHtml(app.current_stage || "—")}</td>
+      <td><span class="${badgeClass("status", app.status)}">${escapeHtml(formatStatusLabel(app.status))}</span></td>
+      <td>${escapeHtml(formatStageLabel(app.current_stage))}</td>
       <td>
         <div class="row-actions">
-          <button class="button tiny secondary" data-action="review">Review</button>
-          <button class="button tiny success" data-action="approve">Approve</button>
-          <button class="button tiny danger" data-action="decline">Decline</button>
-        </div>
-      </td>
-    </tr>
-    <tr class="details-row">
-      <td colspan="6">
-        <div class="details-card">
-          <strong>Details:</strong>
-          <pre>${escapeHtml(details)}</pre>
+          <button class="button tiny secondary" data-action="review" type="button">Review</button>
         </div>
       </td>
     </tr>
@@ -183,9 +233,9 @@ function renderPagination() {
   const nextDisabled = state.offset + state.limit >= state.total ? "disabled" : "";
 
   els.pagination.innerHTML = `
-    <button id="page-prev" class="button secondary" ${prevDisabled}>Previous</button>
+    <button id="page-prev" class="button secondary" type="button" ${prevDisabled}>Previous</button>
     <span class="pagination-status">Page ${Math.floor(state.offset / state.limit) + 1}</span>
-    <button id="page-next" class="button secondary" ${nextDisabled}>Next</button>
+    <button id="page-next" class="button secondary" type="button" ${nextDisabled}>Next</button>
   `;
 
   document.getElementById("page-prev")?.addEventListener("click", () => {
@@ -199,40 +249,48 @@ function renderPagination() {
   });
 }
 
-function field(label, value) {
-  return `
-    <div class="review-field">
-      <div class="review-label">${escapeHtml(label)}</div>
-      <div class="review-value">${escapeHtml(value ?? "—")}</div>
-    </div>
-  `;
-}
-
 function renderStructuredDetails(app) {
   const data = app.data_json || {};
   const type = app.application_type || "application";
+
+  const typeLabelMap = {
+    staff: "Staff Application",
+    vendor: "Vendor Application",
+    panel: "Panel Submission",
+  };
+
+  const typeLabel = typeLabelMap[type] || "Application";
 
   let specificFields = "";
 
   if (type === "staff") {
     specificFields = `
       ${field("Department", app.target_department || data.department || "—")}
-      ${field("Target Role", app.target_role || data.target_role || "—")}
+      ${field("Target Role", app.target_role || data.target_role || data.role || "—")}
       ${field("Experience", data.experience || "—")}
-      ${field("Availability", Array.isArray(data.availability) ? data.availability.join(", ") : "—")}
+      ${field(
+        "Availability",
+        Array.isArray(data.availability) ? data.availability.join(", ") : (data.availability || "—")
+      )}
     `;
   } else if (type === "vendor") {
     specificFields = `
       ${field("Business Name", data.business_name || "—")}
       ${field("Contact Name", data.contact_name || "—")}
       ${field("Inventory Summary", data.inventory_summary || "—")}
-      ${field("Needs Power", data.needs_power === true ? "Yes" : data.needs_power === false ? "No" : "—")}
+      ${field(
+        "Needs Power",
+        data.needs_power === true ? "Yes" : data.needs_power === false ? "No" : "—"
+      )}
     `;
   } else if (type === "panel") {
     specificFields = `
       ${field("Panel Title", data.panel_title || app.title || "—")}
       ${field("Duration", data.duration_minutes ? `${data.duration_minutes} minutes` : "—")}
-      ${field("Tech Needs", Array.isArray(data.tech_needs) ? data.tech_needs.join(", ") : "—")}
+      ${field(
+        "Tech Needs",
+        Array.isArray(data.tech_needs) ? data.tech_needs.join(", ") : (data.tech_needs || "—")
+      )}
       ${field("Description", data.panel_description || "—")}
     `;
   } else {
@@ -241,14 +299,16 @@ function renderStructuredDetails(app) {
 
   return `
     <div class="review-section">
-      <h3>${escapeHtml(type.toUpperCase())}</h3>
+      <h3>${escapeHtml(typeLabel)}</h3>
       <div class="review-grid">
         ${field("Application ID", app.id)}
-        ${field("Status", app.status)}
-        ${field("Stage", app.current_stage || "—")}
+        ${field("Status", formatStatusLabel(app.status))}
+        ${field("Stage", formatStageLabel(app.current_stage))}
         ${field("Submitted", formatDate(app.submitted_at || app.created_at))}
         ${field("Applicant", getApplicantName(app))}
         ${field("Email", getApplicantEmail(app))}
+        ${type === "staff" ? field("Department", app.target_department || data.department || "—") : ""}
+        ${type === "staff" ? field("Target Role", app.target_role || data.target_role || data.role || "—") : ""}
       </div>
     </div>
 
@@ -260,10 +320,38 @@ function renderStructuredDetails(app) {
     </div>
 
     <div class="review-section">
-      <h4>Raw Payload</h4>
-      <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+      <button class="button secondary tiny" type="button" id="toggle-raw-payload">
+        Show Raw Payload
+      </button>
+      <div id="raw-payload-wrap" class="hidden">
+        <pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>
+      </div>
     </div>
   `;
+}
+
+function setReviewControlsDisabled(disabled) {
+  els.reviewStage.disabled = disabled;
+  els.reviewNotes.disabled = disabled;
+  els.reviewApprove.disabled = disabled;
+  els.reviewDecline.disabled = disabled;
+  els.reviewUnder.disabled = disabled;
+  els.reviewSave.disabled = disabled;
+}
+
+function syncReviewControls(app) {
+  if (!app) {
+    setReviewControlsDisabled(true);
+    return;
+  }
+
+  const isTerminal = TERMINAL_STATUSES.includes(app.status);
+  els.reviewStage.disabled = isTerminal;
+  els.reviewNotes.disabled = false;
+  els.reviewApprove.disabled = isTerminal;
+  els.reviewDecline.disabled = isTerminal;
+  els.reviewUnder.disabled = isTerminal;
+  els.reviewSave.disabled = isTerminal;
 }
 
 async function loadApplications() {
@@ -300,47 +388,88 @@ async function loadApplications() {
 async function openReviewPanel(applicationId) {
   currentApplicationId = applicationId;
   currentApplication = null;
-
-  reviewPanel.classList.remove("hidden");
-  reviewContent.innerHTML = "Loading...";
+  els.reviewContent.innerHTML = "<p>Loading...</p>";
+  setReviewControlsDisabled(true);
+  els.reviewNotes.value = "";
 
   try {
     const res = await api.getApplication(applicationId);
     const app = res.application || res;
     currentApplication = app;
 
-    const reviews = await apiGet(`/admin/applications/${applicationId}/reviews`);
+    let reviews = [];
+    try {
+      const reviewResponse = await apiGet(`/admin/applications/${applicationId}/reviews`);
+      reviews = reviewResponse?.reviews || reviewResponse || [];
+      if (!Array.isArray(reviews)) {
+        reviews = [];
+      }
+    } catch (error) {
+      console.warn("Review history unavailable:", error);
+      reviews = [];
+    }
 
-    reviewStage.innerHTML = renderStageOptions(app);
-    reviewStage.value = app.current_stage || getStageSequence(app.application_type)[0];
-    reviewNotes.value = "";
+    els.reviewStage.innerHTML = renderStageOptions(app);
+    els.reviewStage.value = app.current_stage || getStageSequence(app.application_type)[0];
 
     const historyHtml = reviews.length
-      ? reviews.map((r) => `
-          <div class="review-section">
-            <strong>${escapeHtml(r.stage || "—")} | ${escapeHtml(r.decision || "note")}</strong>
-            <div>${escapeHtml(r.notes || "")}</div>
-            <small>${escapeHtml(r.created_at || "")}</small>
-          </div>
-        `).join("")
-      : "<p>No reviews yet.</p>";
+      ? reviews
+          .map(
+            (review) => `
+              <div class="review-section">
+                <div class="history-title">
+                  <strong>${escapeHtml(formatStageLabel(review.stage))}</strong>
+                  <span class="${badgeClass("decision", review.decision)}">${escapeHtml(formatDecisionLabel(review.decision))}</span>
+                </div>
+                <div>${escapeHtml(review.notes || "")}</div>
+                <small>${escapeHtml(formatDate(review.created_at))}</small>
+              </div>
+            `
+          )
+          .join("")
+      : "<p>No review history available yet.</p>";
 
-    reviewContent.innerHTML = `
+    els.reviewContent.innerHTML = `
+      ${TERMINAL_STATUSES.includes(app.status) ? `
+        <div class="review-section">
+          <div class="status-lock-message">
+            This application is in a terminal status and can no longer be changed.
+          </div>
+        </div>
+      ` : ""}
       ${renderStructuredDetails(app)}
       <div class="review-section">
         <h4>Review History</h4>
         ${historyHtml}
       </div>
     `;
+
+    const toggleRawBtn = document.getElementById("toggle-raw-payload");
+    const rawPayloadWrap = document.getElementById("raw-payload-wrap");
+
+    toggleRawBtn?.addEventListener("click", () => {
+      const isHidden = rawPayloadWrap?.classList.contains("hidden");
+      rawPayloadWrap?.classList.toggle("hidden", !isHidden);
+      toggleRawBtn.textContent = isHidden ? "Hide Raw Payload" : "Show Raw Payload";
+    });
+
+    syncReviewControls(app);
+    els.reviewNotes.focus();
   } catch (error) {
-    reviewContent.innerHTML = `Error loading application: ${escapeHtml(error.message)}`;
+    els.reviewContent.innerHTML = `<p>Error loading application: ${escapeHtml(error.message)}</p>`;
+    setReviewControlsDisabled(true);
   }
 }
 
 async function updateStatus(status) {
-  if (!currentApplicationId) return;
+  if (!currentApplicationId || !currentApplication) return;
 
-  const notes = reviewNotes.value.trim();
+  if (TERMINAL_STATUSES.includes(currentApplication.status)) {
+    alert("Cannot change status on a terminal application.");
+    return;
+  }
+
+  const notes = els.reviewNotes.value.trim();
   if (!notes) {
     alert("Reviewer notes are required before changing status.");
     return;
@@ -350,7 +479,7 @@ async function updateStatus(status) {
     await api.updateApplicationStatus(currentApplicationId, status);
 
     await api.createApplicationReview(currentApplicationId, {
-      stage: reviewStage.value,
+      stage: els.reviewStage.value,
       decision: status,
       notes,
     });
@@ -363,27 +492,27 @@ async function updateStatus(status) {
 }
 
 async function saveReview() {
-  if (!currentApplicationId) return;
-if (currentApplication?.status && ["approved", "declined", "waitlisted", "withdrawn"].includes(currentApplication.status)) {
-  alert("Cannot change stage on a terminal application.");
-  return;
-}
+  if (!currentApplicationId || !currentApplication) return;
+
+  if (TERMINAL_STATUSES.includes(currentApplication.status)) {
+    alert("Cannot change stage on a terminal application.");
+    return;
+  }
+
+  const notes = els.reviewNotes.value.trim();
+  if (!notes) {
+    alert("Reviewer notes are required when saving a review.");
+    return;
+  }
 
   try {
-    await api.updateApplicationStage(currentApplicationId, reviewStage.value);
+    await api.updateApplicationStage(currentApplicationId, els.reviewStage.value);
 
-    const notes = reviewNotes.value.trim();
-
-if (!notes) {
-  alert("Reviewer notes are required when saving a review.");
-  return;
-}
-
-await api.createApplicationReview(currentApplicationId, {
-  stage: reviewStage.value,
-  decision: null,
-  notes,
-});
+    await api.createApplicationReview(currentApplicationId, {
+      stage: els.reviewStage.value,
+      decision: "note",
+      notes,
+    });
 
     await loadApplications();
     await openReviewPanel(currentApplicationId);
@@ -401,28 +530,12 @@ async function handleActionClick(event) {
   if (!row) return;
 
   const applicationId = row.dataset.id;
-  const action = button.dataset.action;
-
-  button.disabled = true;
 
   try {
-    if (action === "review") {
-      await openReviewPanel(applicationId);
-      return;
-    }
-    if (action === "approve") {
-      await api.updateApplicationStatus(applicationId, "approved");
-    }
-    if (action === "decline") {
-      await api.updateApplicationStatus(applicationId, "declined");
-    }
-
-    await loadApplications();
+    await openReviewPanel(applicationId);
   } catch (error) {
-    console.error("admin app action failed:", error);
-    alert(`Action failed: ${error.message}`);
-  } finally {
-    button.disabled = false;
+    console.error(error);
+    alert("Failed to open application.");
   }
 }
 
@@ -441,29 +554,29 @@ function bindFilters() {
 
   els.filterSearch?.addEventListener("input", () => {
     state.filters.search = els.filterSearch.value;
+    state.offset = 0;
     loadApplications();
   });
 
-  els.refreshBtn?.addEventListener("click", loadApplications);
-  els.tbody?.addEventListener("click", handleActionClick);
-
-  document.getElementById("close-review")?.addEventListener("click", () => {
-    reviewPanel.classList.add("hidden");
+  els.refreshBtn?.addEventListener("click", () => {
+    loadApplications();
   });
 
-  document.getElementById("review-approve")?.addEventListener("click", async () => {
+  els.tbody?.addEventListener("click", handleActionClick);
+
+  els.reviewApprove?.addEventListener("click", async () => {
     await updateStatus("approved");
   });
 
-  document.getElementById("review-decline")?.addEventListener("click", async () => {
+  els.reviewDecline?.addEventListener("click", async () => {
     await updateStatus("declined");
   });
 
-  document.getElementById("review-under")?.addEventListener("click", async () => {
+  els.reviewUnder?.addEventListener("click", async () => {
     await updateStatus("under_review");
   });
 
-  document.getElementById("review-save")?.addEventListener("click", async () => {
+  els.reviewSave?.addEventListener("click", async () => {
     await saveReview();
   });
 }
@@ -472,8 +585,9 @@ async function init() {
   const session = await requireAuth();
   if (!session) return;
 
+  setReviewControlsDisabled(true);
   bindFilters();
-  loadApplications();
+  await loadApplications();
 }
 
 init();

@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="/assets/css/components.css" />
   <link rel="stylesheet" href="/assets/css/pages/tickets.css" />
 </head>
-<script src="/vendor/qrcode.min.js"></script>
 <script type="module" src="/assets/js/pages/tickets.js"></script>
 <body>
   <main class="page">
@@ -18,8 +17,19 @@
         <h1>Ticket Issuing</h1>
         <p>Create and assign tickets</p>
       </div>
-      <a href="/admin.html" class="button secondary">Dashboard</a>
     </header>
+ <header>
+  <nav class="top-nav">
+    <a href="/admin.html">Dashboard</a>
+    <a href="/admin-apps.html">Applications</a>
+    <a href="/applications.html">Check-In</a>
+    <a href="/checkins.html">Check-In Activity</a>
+    <a href="/attendees.html">Attendees</a>
+    <a href="/stats.html">Stats</a>
+    <a href="/ops.html">Ops</a>
+    <a href="/tickets.html">Tickets</a>
+  </nav>
+ </header>
 
     <section class="panel">
       <form id="ticket-form" class="form">
