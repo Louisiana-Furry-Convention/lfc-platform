@@ -11,6 +11,7 @@ from lfc_api.db.session import get_db
 from lfc_api.models.user import User
 from lfc_api.models.ticketing import CheckIn, Ticket, TicketType
 from lfc_api.models.application import Application
+from lfc_api.models.application_review import ApplicationReview
 
 from lfc_api.core.deps import get_current_user
 from lfc_api.core.authz import require_roles
@@ -711,19 +712,39 @@ def create_application_review(
     if not app:
         raise HTTPException(status_code=404, detail="Application not found")
 
+    stage = payload.get("stage")
+    notes = payload.get("notes")
+    decision = payload.get("decision")
+
+    if not stage:
+        raise HTTPException(status_code=400, detail="stage is required")
+
     review = ApplicationReview(
         id=str(uuid.uuid4()),
         application_id=application_id,
-        reviewer_id=current_user.id,
-        stage=payload.get("stage"),
-        decision=payload.get("decision"),
-        notes=payload.get("notes"),
+        reviewed_by_user_id=current_user.id,
+        stage=stage,
+        decision=decision,
+        notes=notes,
+        created_at=datetime.utcnow(),
     )
 
     db.add(review)
     db.commit()
+    db.refresh(review)
 
-    return {"ok": True}
+    return {
+        "ok": True,
+        "review": {
+            "id": review.id,
+            "application_id": review.application_id,
+            "stage": review.stage,
+            "decision": review.decision,
+            "notes": review.notes,
+            "reviewed_by_user_id": review.reviewed_by_user_id,
+            "created_at": review.created_at,
+        },
+    }
 
 @router.patch("/applications/{application_id}/stage")
 def update_application_stage(
@@ -776,20 +797,28 @@ def get_application_reviews(
 ):
     require_roles(current_user, APPLICATION_REVIEW_ROLES)
 
-    rows = db.query(ApplicationReview).filter(
-        ApplicationReview.application_id == application_id
-    ).order_by(ApplicationReview.created_at.desc()).all()
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
 
-    return [
-        {
-            "id": r.id,
-            "stage": r.stage,
-            "decision": r.decision,
-            "notes": r.notes,
-            "reviewer_id": r.reviewer_id,
-            "created_at": r.created_at,
-        }
-        for r in rows
-    ]
+    rows = (
+        db.query(ApplicationReview)
+        .filter(ApplicationReview.application_id == application_id)
+        .order_by(ApplicationReview.created_at.desc())
+        .all()
+    )
 
-
+    return {
+        "ok": True,
+        "reviews": [
+            {
+                "id": r.id,
+                "stage": r.stage,
+                "decision": r.decision,
+                "notes": r.notes,
+                "reviewed_by_user_id": r.reviewed_by_user_id,
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ],
+    }

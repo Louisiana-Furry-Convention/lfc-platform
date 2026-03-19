@@ -134,3 +134,7 @@ export function requireRole(allowedRoles = [], redirectTo = "/login.html") {
   return true;
 }
 
+document.getElementById("logoutBtn")?.addEventListener("click", () => {
+  localStorage.removeItem("token");
+  window.location.href = "/login.html";
+});
