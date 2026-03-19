@@ -1,331 +1,259 @@
 # LFC Platform
 
-Convention operations platform for **Louisiana Furry Convention (LouisiAnthro)**.
+LFC Platform is a custom-built convention management system designed to support large-scale events with internal operations, applications, ticketing, and staff coordination.
 
-The LFC Platform is designed to become the **central operating system for the convention**, powering ticketing, staff management, vendor management, panel scheduling, inventory, and operations tools.
-
-Repository:
-https://github.com/Thorthedefender/lfc-platform
+Current focus is **v0.2.x — Applications System**, with future expansion into operations, e-commerce, and client apps.
 
 ---
 
-# Current Version
+# 🚧 Current Version
+**v0.2.1 — Applications Review Workflow Stabilized**
 
+---
 
-v0.1.5
+# ✅ Current Features
 
+## Authentication
+- JWT-based authentication
+- Admin login system
+- `/auth/login`
+- `/auth/me`
 
-Environment example:
+## Applications System (Core of v0.2.x)
+Supports:
+- Staff applications
+- Vendor applications
+- Panel submissions
 
-```json
-{
-  "ok": true,
-  "app": "lfc-platform",
-  "version": "v0.1.5",
-  "environment": "dev"
-}
-```
-Platform Status
+### Backend
+- Unified `applications` model
+- Application status lifecycle:
+  - `submitted`
+  - `under_review`
+  - `approved`
+  - `declined`
+  - `waitlisted`
+  - `withdrawn`
 
-Core backend ticketing system is operational.
+- Stage progression system:
+  - staff:
+    - submitted → hr_interview → lead_interview → director_review → officer_review → hr_onboarding → complete
+  - vendor/panel:
+    - submitted → review → complete
 
-Verified workflow:
+### Review System
+- Create structured review entries
+- Review history per application
+- Notes required for actions
+- Non-terminal stage updates allowed
+- Terminal status lock enforced
 
-signup
-login
-create order
-admin complete order
-ticket issued
-ticket visible in /me/tickets
-QR generated
-check-in endpoint operational
+Terminal statuses:
+- approved
+- declined
+- waitlisted
+- withdrawn
 
-Current development environment:
-
-Raspberry Pi
-Ubuntu Server
-FastAPI
-SQLite
-Quick Start
-
-Clone repository
-
-git clone https://github.com/Thorthedefender/lfc-platform.git
-cd lfc-platform/apps/api
-
-Create virtual environment
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-Install dependencies
-
-pip install -r requirements.txt
-
-Run development server
-
-uvicorn lfc_api.main:app --reload
-
-API available at:
-
-http://127.0.0.1:8000
-
-Interactive docs:
-
-http://127.0.0.1:8000/docs
-System Endpoints
-
-Health check
+### API Endpoints
 
 GET /health
-
-Example response
-
-{
-  "ok": true,
-  "service": "lfc-platform-api",
-  "database": "ok",
-  "environment": "dev"
-}
-
-Version info
-
-GET /version
-
-Example response
-
-{
-  "ok": true,
-  "app": "lfc-platform",
-  "version": "v0.1.5",
-  "environment": "dev",
-  "commit": "abc123"
-}
-Authentication
-
-Signup
-
-POST /auth/signup
-
-Example request
-
-{
-  "email": "user@example.com",
-  "password": "password123",
-  "full_name": "Example User"
-}
-
-Login
-
 POST /auth/login
+GET /auth/me
 
-Example request
+GET /admin/applications
+GET /admin/applications/{id}
+PATCH /admin/applications/{id}/status
+PATCH /admin/applications/{id}/stage
 
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-
-Response returns a JWT token used for authenticated endpoints.
-
-Ticketing
-
-Public ticket catalog
-
-GET /tickets/public/ticket_types
-
-Example response
-
-[
-  {
-    "id": "lfc-2027-early",
-    "event_id": "lfc-2027",
-    "name": "Early Registration",
-    "price_cents": 4500
-  }
-]
-
-Create order
-
-POST /tickets/orders
-
-Example request
-
-{
-  "ticket_type_id": "lfc-2027-early",
-  "quantity": 1
-}
-
-Complete order (admin)
-
-POST /tickets/orders/complete
-Tickets
-
-User tickets
-
-GET /me/tickets
-
-Tickets include QR tokens used for check-in.
-
-Check-in System
-
-Validate ticket QR code
-
-POST /checkin
-
-Example request
-
-{
-  "qr_token": "TOKEN_VALUE"
-}
-
-Possible responses
-
-checked_in
-already_checked_in
-invalid_ticket
-Scanner UI
-
-Basic check-in scanner interface
-
-GET /scan
-
-Designed for:
-
-registration desk
-event room checkpoints
-RFID/QR scanning stations
-Payments
-
-Clover integration scaffold implemented.
-
-Endpoints:
-
-POST /payments/clover/create-order
-POST /payments/clover/webhook
-GET  /payments/clover/config-test
-
-Clover credentials are configured via environment variables.
-
-CLOVER_MERCHANT_ID
-CLOVER_API_KEY
-CLOVER_WEBHOOK_SECRET
-Environment Configuration
-
-Environment files:
-
-.env.dev
-.env.staging
-.env.prod
-
-Example:
-
-APP_ENV=dev
-APP_VERSION=v0.1.5
-
-DATABASE_URL=sqlite:///./lfc.db
-
-SECRET_KEY=change-me
-
-API_BASE_URL=http://127.0.0.1:8000
-FRONTEND_BASE_URL=http://127.0.0.1:3000
-Deployment
-
-Deployment is release-driven.
-
-Rules:
-
-Development machines never auto-update
-Tagged releases deploy to staging
-Published releases deploy to production
-
-Deployment script
-
-scripts/deploy_release.sh
-
-Example usage
-
-./scripts/deploy_release.sh staging v0.1.5
-
-GitHub Actions workflows
-
-.github/workflows/deploy-staging.yml
-.github/workflows/deploy-production.yml
-Project Roadmap
-v0.1.x   Ticketing foundation + deployment hardening
-v0.2.x   Applications system
-v0.3.x   Operations modules
-v0.4.x   E-commerce
-v0.5.x   Client-side apps
-v1.0.0   Full convention deployment
-Release History
-v0.1.0-alpha
-Initial platform deployment
-Basic API structure
-
-v0.1.1-alpha
-Authentication
-check-in system
-ticket issuance
-
-v0.1.2
-API stability improvements
-database migrations
-
-v0.1.3-beta
-ticket catalog
-order creation
-payment preparation
-
-v0.1.4
-complete ticket lifecycle
-QR generation
-admin order completion
-
-v0.1.5
-deployment automation
-environment configuration
-system health/version endpoints
-clover payment scaffold
-scanner UI
-auth cleanup
-Next Milestone
-v0.2.0
-Applications System
-
-Planned features
-
-staff applications
-vendor applications
-panel submissions
-application review system
-attachment uploads
-status workflows
-Long-Term Vision
-
-The LFC Platform will become the central operating system for the convention.
-
-Future modules
-
-ticketing
-staff management
-vendor management
-panel scheduling
-inventory management
-merchandise
-e-commerce
-RFID attendance tracking
-operations analytics
-
-Accessible via
-
-public website
-staff/admin web interface
-mobile operations tools
-future desktop client
-License
-
-Internal project for Louisiana Furry Convention LLC.
+GET /admin/applications/{id}/reviews
+POST /admin/applications/{id}/reviews
 
 
 ---
+
+# 🖥️ Web UI
+
+## Admin Applications Page
+- Table + detail panel layout
+- Review-first workflow
+- Application detail breakdown
+- Review history timeline
+- Raw payload toggle
+- Terminal status lock message
+
+## Tickets Page
+- Cleaned to prevent QR dependency crashes
+
+---
+
+# 🗂️ Project Structure
+
+
+lfc-platform/
+
+├── apps/
+
+│ ├── api/
+
+│ │ ├── lfc_api/
+
+│ │ │ ├── routers/
+
+│ │ │ ├── models/
+
+│ │ │ ├── core/
+
+│ │ │ └── ...
+
+│ │ └── lfc_edge.db
+
+│ │
+
+│ └── web/
+
+│ ├── admin-apps.html
+
+│ ├── tickets.html
+
+│ ├── assets/
+
+│ │ ├── js/
+
+│ │ ├── css/
+
+│ │ └── ...
+
+
+---
+
+# 🧪 Quick Start
+
+## Start API
+```bash
+cd apps/api
+source .venv/bin/activate
+uvicorn lfc_api.main:app --reload
+Health Check
+curl http://127.0.0.1:8000/health
+Get Token
+TOKEN=$(curl -s -X POST http://127.0.0.1:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@lfc.local","password":"admin"}' \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+Test Applications
+curl -H "Authorization: Bearer $TOKEN" \
+http://127.0.0.1:8000/admin/applications
+Start Web UI
+cd apps/web
+python3 -m http.server 8080
+```
+Open:
+
+http://<your-ip>:8080/admin-apps.html
+
+⚠️ Important Rules
+
+Do NOT:
+
+Reintroduce deprecated fields:
+
+reviewed_by
+
+reviewed_at
+
+review_notes
+
+Duplicate ApplicationReview model
+
+Use reviewer_id (use reviewed_by_user_id)
+
+Use denied (use declined)
+
+Modify terminal status behavior
+
+📌 Known Good State
+
+API stable
+
+Admin UI stable
+
+Application review fully functional
+
+Stage transitions working
+
+Review history working
+
+Terminal lock enforced
+
+Tickets page no longer crashes
+
+🚀 Roadmap
+v0.2.x — Applications
+
+Unified application engine ✅
+
+Review workflow ✅
+
+UI stabilization ✅
+
+Minor polish (in progress)
+
+v0.3.x — Operations
+
+Inventory system
+
+Asset checkout
+
+Staff tracking
+
+RFID integration (planned)
+
+v0.4.x — E-Commerce
+
+Ticket sales
+
+Payments (Clover integration)
+
+Order management
+
+v0.5.x — Client Apps
+
+Staff web app
+
+Mobile check-in tools
+
+PWA support
+
+v1.0.0 — Full Convention System
+
+Production-ready deployment
+
+Fully integrated convention platform
+
+🎯 Project Direction
+
+Internal-first tooling
+
+Stability over speed
+
+Controlled feature expansion
+
+No operations layer work until v0.3.x+
+
+🧠 Notes
+
+This platform is designed specifically for:
+
+Large-scale conventions
+
+Multi-department operations
+
+Real-time staff coordination
+
+Expandable infrastructure
+
+👤 Maintained By
+
+LFC (Louisiana Furry Convention) Technology Team:
+
+Thor, Co-President & J-CTO
