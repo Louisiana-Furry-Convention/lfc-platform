@@ -1,0 +1,74 @@
+.page-ops {
+  padding: 24px;
+}
+
+.page-header,
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  padding: 18px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.surge-true {
+  border-color: rgba(190, 40, 40, 0.6);
+  background: rgba(190, 40, 40, 0.12);
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+}
+
+.feed-list,
+.lane-list {
+  display: grid;
+  gap: 10px;
+}
+
+.feed-item,
+.lane-item {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+
+.feed-time,
+.lane-meta {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+@media (max-width: 900px) {
+  .ops-grid {
+    grid-template-columns: 1fr;
+  }
+}

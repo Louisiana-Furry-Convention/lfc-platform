@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Stats</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/stats.css" />
+</head>
+<body>
+  <main class="page page-stats">
+    <header class="page-header">
+      <div>
+        <h1>Operational Stats</h1>
+        <p>Quick convention metrics</p>
+      </div>
+      </div>
+    </header>
+ <header>
+  <nav class="top-nav">
+    <a href="/admin.html">Dashboard</a>
+    <a href="/admin-apps.html">Applications</a>
+    <a href="/applications.html">Check-In</a>
+    <a href="/checkins.html">Check-In Activity</a>
+    <a href="/attendees.html">Attendees</a>
+    <a href="/stats.html">Stats</a>
+    <a href="/ops.html">Ops</a>
+    <a href="/tickets.html">Tickets</a>
+  </nav>
+ </header>
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Applications</div>
+        <div id="stat-applications" class="stat-value">—</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Check-Ins</div>
+        <div id="stat-checkins" class="stat-value">—</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Tickets</div>
+        <div id="stat-tickets" class="stat-value">—</div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/stats.js"></script>
+</body>
+</html>

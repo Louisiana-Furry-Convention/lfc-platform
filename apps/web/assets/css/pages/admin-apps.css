@@ -1,0 +1,251 @@
+.page-admin-apps {
+  padding: 24px;
+}
+
+.page-header,
+.table-toolbar,
+.filters-grid,
+.row-actions,
+.pagination,
+.review-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.page-header,
+.table-toolbar {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admin-apps-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.queue-panel,
+.detail-panel {
+  min-width: 0;
+}
+
+.detail-panel {
+  position: sticky;
+  top: 24px;
+}
+
+.filters-panel {
+  margin-bottom: 16px;
+}
+
+.filters-grid {
+  flex-wrap: wrap;
+}
+
+.filters-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.filter-search {
+  flex: 1;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+  text-align: left;
+}
+
+.cell-primary {
+  font-weight: 600;
+}
+
+.cell-secondary {
+  opacity: 0.75;
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.badge.success {
+  background: rgba(0, 128, 0, 0.2);
+}
+
+.badge.danger {
+  background: rgba(180, 0, 0, 0.2);
+}
+
+.badge.warning {
+  background: rgba(180, 120, 0, 0.2);
+}
+
+.badge.info {
+  background: rgba(0, 90, 180, 0.2);
+}
+
+.badge.muted {
+  background: rgba(120, 120, 120, 0.2);
+}
+
+.row-actions {
+  flex-wrap: wrap;
+}
+
+.pagination {
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.button.tiny {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-content,
+.review-form,
+.review-actions {
+  margin-top: 16px;
+}
+
+.review-content {
+  font-size: 14px;
+}
+
+.review-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  background: #181818;
+}
+
+.review-section h3,
+.review-section h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.review-field {
+  display: grid;
+  gap: 4px;
+}
+
+.review-label {
+  font-size: 12px;
+  opacity: 0.75;
+  text-transform: uppercase;
+}
+
+.review-value {
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.review-form {
+  display: grid;
+  gap: 12px;
+}
+
+.review-form textarea,
+.review-form select {
+  width: 100%;
+}
+
+.review-actions {
+  flex-wrap: wrap;
+}
+
+.review-content pre,
+.review-value pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 1100px) {
+  .admin-apps-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-panel {
+    position: static;
+  }
+}
+.hidden {
+  display: none;
+}
+
+.status-lock-message {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(180, 120, 0, 0.16);
+  border: 1px solid rgba(180, 120, 0, 0.35);
+  font-weight: 600;
+}
+
+.review-section pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+.history-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.cell-tertiary {
+  opacity: 0.68;
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.badge.success { background: rgba(0, 128, 0, 0.2); }
+.badge.danger  { background: rgba(180, 0, 0, 0.2); }
+.badge.warning { background: rgba(180, 120, 0, 0.2); }
+.badge.info    { background: rgba(0, 90, 180, 0.2); }
+.badge.muted   { background: rgba(120, 120, 120, 0.2); }

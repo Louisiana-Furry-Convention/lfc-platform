@@ -8,6 +8,7 @@ on:
 jobs:
   deploy-staging:
     runs-on: ubuntu-latest
+    environment: staging
 
     steps:
       - name: Deploy to staging over SSH
@@ -16,6 +17,7 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: GITHUB_REF_NAME
           script: |
-            cd /opt/lfc-platform
+            cd ~/lfc-platform
             ./scripts/deploy_release.sh staging ${GITHUB_REF_NAME}

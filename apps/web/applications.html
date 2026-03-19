@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Check-In</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/checkin.css" />
+</head>
+<body>
+  <main class="page page-checkin">
+    <header class="page-header">
+      <div>
+        <h1>Registration / Check-In</h1>
+        <p>Scanner-first attendee processing</p>
+      </div>
+    </header>
+ <header>
+  <nav class="top-nav">
+    <a href="/admin.html">Dashboard</a>
+    <a href="/admin-apps.html">Applications</a>
+    <a href="/applications.html">Check-In</a>
+    <a href="/checkins.html">Check-In Activity</a>
+    <a href="/attendees.html">Attendees</a>
+    <a href="/stats.html">Stats</a>
+    <a href="/ops.html">Ops</a>
+    <a href="/tickets.html">Tickets</a>
+  </nav>
+ </header>
+
+    <section class="panel hero-panel">
+      <form id="checkin-form" class="checkin-form">
+        <div class="form-row">
+          <div class="form-group grow">
+            <label for="ticket-code">QR Token</label>
+            <input
+              id="ticket-code"
+              type="text"
+              placeholder="Scan or paste QR token"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="form-group lane-group">
+            <label for="lane-select">Lane</label>
+            <select id="lane-select">
+              <option value="main">Main</option>
+              <option value="vip">VIP</option>
+              <option value="staff">Staff</option>
+              <option value="overflow">Overflow</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button id="checkin-button" type="submit" class="button button-primary">
+            Check In
+          </button>
+          <button id="clear-button" type="button" class="button secondary">
+            Clear
+          </button>
+        </div>
+
+        <p id="checkin-status" class="status-message" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="result-card" class="panel result-panel state-neutral">
+      <div class="result-header">
+        <h2>Last Scan Result</h2>
+        <span id="result-state-badge" class="result-badge">Waiting</span>
+      </div>
+
+      <div id="checkin-result" class="result-grid">
+        <div>
+          <div class="result-label">Attendee</div>
+          <div class="result-value">No attendee checked in yet.</div>
+        </div>
+        <div>
+          <div class="result-label">Ticket Type</div>
+          <div class="result-value">—</div>
+        </div>
+        <div>
+          <div class="result-label">Lane</div>
+          <div class="result-value">—</div>
+        </div>
+        <div>
+          <div class="result-label">Status</div>
+          <div class="result-value">—</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Recent Activity</h2>
+      </div>
+      <div id="recent-activity" class="activity-list">
+        No recent activity yet.
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/checkin.js"></script>
+</body>
+</html>
+

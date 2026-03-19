@@ -1,0 +1,306 @@
+.page {
+  padding: 24px;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.ticket-output,
+.badge-preview {
+  min-height: 120px;
+}
+
+.panel-header,
+.badge-controls,
+.ticket-actions,
+.badge-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-header {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.ticket-card {
+  padding: 20px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 14px;
+  display: grid;
+  gap: 16px;
+}
+
+.ticket-card-main {
+  display: grid;
+  grid-template-columns: 1.2fr 240px;
+  gap: 20px;
+  align-items: start;
+}
+
+.ticket-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.ticket-label {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.ticket-value {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.ticket-code,
+.badge-token {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  overflow-wrap: anywhere;
+}
+
+.ticket-qr,
+.badge-qr {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ticket-qr > div,
+.badge-qr > div {
+  background: white;
+  padding: 10px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.qr-fallback {
+  background: white;
+  color: black;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.badge-card {
+  width: 100%;
+  display: grid;
+  gap: 24px;
+  color: white;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+}
+
+.badge-tone-standard {
+  background: linear-gradient(135deg, #2b2f42, #3d405b);
+}
+
+.badge-tone-vip {
+  background: linear-gradient(135deg, #6a4c00, #b88700);
+}
+
+.badge-tone-staff {
+  background: linear-gradient(135deg, #004b3a, #0d7a5f);
+}
+
+.badge-tone-vendor {
+  background: linear-gradient(135deg, #3d2366, #6c43b8);
+}
+
+.badge-stock-4x6 {
+  max-width: 6in;
+  min-height: 4in;
+  padding: 28px;
+  border-radius: 20px;
+}
+
+.badge-stock-3x4 {
+  max-width: 4in;
+  min-height: 3in;
+  padding: 18px;
+  border-radius: 14px;
+  gap: 14px;
+}
+
+.badge-stock-half-letter {
+  max-width: 5.5in;
+  min-height: 8in;
+  padding: 28px;
+  border-radius: 20px;
+}
+
+.badge-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.badge-event {
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.badge-year {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.badge-tier {
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  white-space: nowrap;
+}
+
+.badge-middle {
+  display: grid;
+  grid-template-columns: 1.3fr 260px;
+  gap: 24px;
+  align-items: center;
+}
+
+.badge-name {
+  font-size: 2.2rem;
+  font-weight: 900;
+  line-height: 1.05;
+  margin-bottom: 10px;
+}
+
+.badge-email,
+.badge-ticket-id {
+  font-size: 1rem;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.badge-bottom {
+  display: grid;
+  gap: 8px;
+}
+
+.badge-token-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.badge-stock-3x4 .badge-middle {
+  grid-template-columns: 1fr 180px;
+  gap: 16px;
+}
+
+.badge-stock-3x4 .badge-name {
+  font-size: 1.35rem;
+}
+
+.badge-stock-3x4 .badge-email,
+.badge-stock-3x4 .badge-ticket-id,
+.badge-stock-3x4 .badge-tier,
+.badge-stock-3x4 .badge-token {
+  font-size: 0.8rem;
+}
+
+.badge-stock-half-letter .badge-middle {
+  grid-template-columns: 1fr;
+}
+
+.badge-stock-half-letter .badge-name {
+  font-size: 2.5rem;
+}
+
+@media (max-width: 900px) {
+  .ticket-card-main,
+  .badge-middle,
+  .badge-stock-3x4 .badge-middle {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-qr,
+  .badge-qr {
+    justify-content: flex-start;
+  }
+
+  .badge-name {
+    font-size: 1.6rem;
+  }
+}
+
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  .page-header,
+  .form,
+  #status,
+  .ticket-actions,
+  .badge-preview-actions,
+  .badge-controls {
+    display: none !important;
+  }
+
+  body.print-badge-mode .ticket-output,
+  body.print-badge-mode .ticket-output + h2,
+  body.print-badge-mode .panel:first-of-type {
+    display: none !important;
+  }
+
+  body:not(.print-badge-mode) .badge-preview {
+    display: none !important;
+  }
+
+  .ticket-card {
+    background: white;
+    border: 2px solid black;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-inside: avoid;
+  }
+
+  .ticket-qr > div,
+  .badge-qr > div {
+    border: 1px solid black;
+    background: white;
+  }
+
+  body.print-badge-mode[data-badge-stock="4x6"] #printable-badge {
+    width: 6in;
+    min-height: 4in;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-inside: avoid;
+  }
+
+  body.print-badge-mode[data-badge-stock="3x4"] #printable-badge {
+    width: 4in;
+    min-height: 3in;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-inside: avoid;
+  }
+
+  body.print-badge-mode[data-badge-stock="half-letter"] #printable-badge {
+    width: 5.5in;
+    min-height: 8in;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+    page-break-inside: avoid;
+  }
+}

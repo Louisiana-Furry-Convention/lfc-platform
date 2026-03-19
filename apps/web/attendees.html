@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LFC Attendees</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="/assets/css/base.css" />
+  <link rel="stylesheet" href="/assets/css/layout.css" />
+  <link rel="stylesheet" href="/assets/css/components.css" />
+  <link rel="stylesheet" href="/assets/css/pages/attendees.css" />
+</head>
+<body>
+  <main class="page page-attendees">
+    <header class="page-header">
+      <div>
+        <h1>Attendees</h1>
+        <p>Human-readable attendee and ticket list</p>
+      </div>
+        </div>
+    </header>
+ <header>
+  <nav class="top-nav">
+    <a href="/admin.html">Dashboard</a>
+    <a href="/admin-apps.html">Applications</a>
+    <a href="/applications.html">Check-In</a>
+    <a href="/checkins.html">Check-In Activity</a>
+    <a href="/attendees.html">Attendees</a>
+    <a href="/stats.html">Stats</a>
+    <a href="/ops.html">Ops</a>
+    <a href="/tickets.html">Tickets</a>
+  </nav>
+ </header>
+    <section class="panel">
+      <div class="table-toolbar">
+        <input id="search-input" type="text" placeholder="Search name, email, ticket type, status" />
+        <button id="refresh-btn" class="button secondary">Refresh</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Ticket Type</th>
+              <th>Status</th>
+              <th>Event</th>
+            </tr>
+          </thead>
+          <tbody id="attendees-tbody">
+            <tr><td colspan="5">Loading attendees…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/assets/js/pages/attendees.js"></script>
+</body>
+</html>

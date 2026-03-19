@@ -7,6 +7,7 @@ on:
 jobs:
   deploy-production:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Deploy to production over SSH
@@ -16,5 +17,5 @@ jobs:
           username: ${{ secrets.PROD_USER }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            cd /opt/lfc-platform
+            cd ~/lfc-platform
             ./scripts/deploy_release.sh production ${GITHUB_REF_NAME}

@@ -1,6 +1,7 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
@@ -9,6 +10,8 @@ from sqlalchemy import func
 from lfc_api.db.session import get_db
 from lfc_api.models.user import User
 from lfc_api.models.ticketing import CheckIn, Ticket, TicketType
+from lfc_api.models.application import Application
+from lfc_api.models.application_review import ApplicationReview
 
 from lfc_api.core.deps import get_current_user
 from lfc_api.core.authz import require_roles
@@ -16,6 +19,46 @@ from lfc_api.core.security import hash_password
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+APPLICATION_STATUSES = {
+    "draft",
+    "submitted",
+    "under_review",
+    "approved",
+    "declined",
+    "waitlisted",
+    "withdrawn",
+}
+
+APPLICATION_STAGE_SEQUENCES = {
+    "staff": [
+        "submitted",
+        "hr_interview",
+        "lead_interview",
+        "director_review",
+        "officer_review",
+        "hr_onboarding",
+        "complete",
+    ],
+    "vendor": [
+        "submitted",
+        "review",
+        "complete",
+    ],
+    "panel": [
+        "submitted",
+        "review",
+        "complete",
+    ],
+}
+
+TERMINAL_APPLICATION_STATUSES = {
+    "approved",
+    "declined",
+    "waitlisted",
+    "withdrawn",
+}
+
+APPLICATION_REVIEW_ROLES = ["admin", "officer", "director"]
 
 class CreateStaffIn(BaseModel):
     email: EmailStr
@@ -37,12 +80,40 @@ class CreateTicketTypeIn(BaseModel):
     currency: str = "USD"
     is_active: bool = True
 
+class ApplicationStatusUpdate(BaseModel):
+    status: str
 
 class UpdateTicketTypeIn(BaseModel):
     name: str | None = None
     price_cents: int | None = None
     currency: str | None = None
     is_active: bool | None = None
+
+def get_stage_sequence(application_type: str) -> list[str]:
+    return APPLICATION_STAGE_SEQUENCES.get(application_type, ["submitted", "review", "complete"])
+
+
+def is_valid_stage_for_type(application_type: str, stage: str) -> bool:
+    return stage in get_stage_sequence(application_type)
+
+
+def can_move_to_stage(application_type: str, current_stage: str | None, next_stage: str) -> bool:
+    sequence = get_stage_sequence(application_type)
+
+    if next_stage not in sequence:
+        return False
+
+    if current_stage is None:
+        return next_stage == sequence[0]
+
+    try:
+        current_index = sequence.index(current_stage)
+        next_index = sequence.index(next_stage)
+    except ValueError:
+        return False
+
+    # allow staying on same stage or moving forward by one
+    return next_index == current_index or next_index == current_index + 1
 
 @router.get("/users")
 def list_users(
@@ -414,6 +485,7 @@ def db_table(
         "tickets": Ticket,
         "checkins": CheckIn,
         "ticket_types": TicketType,
+        "applications": Application,
     }
 
     model = allowed.get(table)
@@ -465,4 +537,288 @@ def arrival_surge(
         "last_minute": last_minute,
         "avg_per_min": round(avg_per_min, 2),
         "surge": surge
+    }
+
+@router.get("/applications")
+def admin_list_applications(
+    status: str | None = None,
+    application_type: str | None = None,
+    event_id: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    query = db.query(Application)
+
+    if status:
+        if status not in APPLICATION_STATUSES:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        query = query.filter(Application.status == status)
+
+    if application_type:
+        query = query.filter(Application.application_type == application_type)
+
+    if event_id:
+        query = query.filter(Application.event_id == event_id)
+
+    total = query.count()
+
+    rows = (
+        query
+        .order_by(Application.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    return {
+        "ok": True,
+        "count": len(rows),
+        "total": total,
+        "filters": {
+            "status": status,
+            "application_type": application_type,
+            "event_id": event_id,
+            "limit": limit,
+            "offset": offset,
+        },
+        "applications": [
+            {
+                "id": str(app.id),
+                "event_id": app.event_id,
+                "user_id": str(app.user_id),
+                "application_type": app.application_type,
+                "status": app.status,
+                "current_stage": app.current_stage,
+                "title": app.title,
+                "target_department": app.target_department,
+                "target_role": app.target_role,
+                "data_json": app.data_json,
+                "submitted_at": app.submitted_at,
+                "withdrawn_at": app.withdrawn_at,
+                "created_at": app.created_at,
+                "updated_at": app.updated_at,
+            }
+            for app in rows
+        ],
+    }
+
+
+@router.get("/applications/{application_id}")
+def admin_get_application(
+    application_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    app = (
+        db.query(Application)
+        .filter(Application.id == application_id)
+        .first()
+    )
+
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    return {
+        "ok": True,
+        "application": {
+            "id": str(app.id),
+            "event_id": app.event_id,
+            "user_id": str(app.user_id),
+            "application_type": app.application_type,
+            "status": app.status,
+            "current_stage": app.current_stage,
+            "title": app.title,
+            "target_department": app.target_department,
+            "target_role": app.target_role,
+            "data_json": app.data_json,
+            "submitted_at": app.submitted_at,
+            "withdrawn_at": app.withdrawn_at,
+            "created_at": app.created_at,
+            "updated_at": app.updated_at,
+        },
+    }
+
+@router.patch("/applications/{application_id}/status")
+def admin_update_application_status(
+    application_id: str,
+    payload: ApplicationStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    if payload.status not in APPLICATION_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    row = db.query(Application).filter(Application.id == application_id).first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    current_status = row.status
+    next_status = payload.status
+
+    if current_status in TERMINAL_APPLICATION_STATUSES and next_status != current_status:
+        raise HTTPException(status_code=400, detail="Cannot change terminal application status")
+
+    if current_status == "draft" and next_status not in {"submitted", "withdrawn"}:
+        raise HTTPException(status_code=400, detail="Draft can only move to submitted or withdrawn")
+
+    if current_status in {"submitted", "under_review"} and next_status not in {
+        "under_review",
+        "approved",
+        "declined",
+        "waitlisted",
+        "withdrawn",
+    }:
+        raise HTTPException(status_code=400, detail="Invalid status transition")
+
+    row.status = next_status
+
+    if next_status == "approved":
+        row.current_stage = "complete"
+    elif next_status in {"declined", "waitlisted", "withdrawn"}:
+        # keep current stage as-is for audit context
+        pass
+
+    row.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(row)
+
+    return {
+        "ok": True,
+        "application_id": str(row.id),
+        "status": row.status,
+        "current_stage": row.current_stage,
+        "updated_at": row.updated_at,
+    }
+
+@router.post("/applications/{application_id}/reviews")
+def create_application_review(
+    application_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    stage = payload.get("stage")
+    notes = payload.get("notes")
+    decision = payload.get("decision")
+
+    if not stage:
+        raise HTTPException(status_code=400, detail="stage is required")
+
+    review = ApplicationReview(
+        id=str(uuid.uuid4()),
+        application_id=application_id,
+        reviewed_by_user_id=current_user.id,
+        stage=stage,
+        decision=decision,
+        notes=notes,
+        created_at=datetime.utcnow(),
+    )
+
+    db.add(review)
+    db.commit()
+    db.refresh(review)
+
+    return {
+        "ok": True,
+        "review": {
+            "id": review.id,
+            "application_id": review.application_id,
+            "stage": review.stage,
+            "decision": review.decision,
+            "notes": review.notes,
+            "reviewed_by_user_id": review.reviewed_by_user_id,
+            "created_at": review.created_at,
+        },
+    }
+
+@router.patch("/applications/{application_id}/stage")
+def update_application_stage(
+    application_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if app.status in TERMINAL_APPLICATION_STATUSES:
+        raise HTTPException(status_code=400, detail="Cannot change stage on terminal application")
+
+    next_stage = payload.get("current_stage")
+    if not next_stage:
+        raise HTTPException(status_code=400, detail="current_stage is required")
+
+    if not is_valid_stage_for_type(app.application_type, next_stage):
+        raise HTTPException(status_code=400, detail="Invalid stage for application type")
+
+    if not can_move_to_stage(app.application_type, app.current_stage, next_stage):
+        raise HTTPException(status_code=400, detail="Invalid stage transition")
+
+    app.current_stage = next_stage
+    app.updated_at = datetime.utcnow()
+
+    if app.status == "submitted":
+        app.status = "under_review"
+
+    db.commit()
+    db.refresh(app)
+
+    return {
+        "ok": True,
+        "application_id": str(app.id),
+        "status": app.status,
+        "current_stage": app.current_stage,
+        "updated_at": app.updated_at,
+    }
+
+@router.get("/applications/{application_id}/reviews")
+def get_application_reviews(
+    application_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_roles(current_user, APPLICATION_REVIEW_ROLES)
+
+    app = db.query(Application).filter(Application.id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    rows = (
+        db.query(ApplicationReview)
+        .filter(ApplicationReview.application_id == application_id)
+        .order_by(ApplicationReview.created_at.desc())
+        .all()
+    )
+
+    return {
+        "ok": True,
+        "reviews": [
+            {
+                "id": r.id,
+                "stage": r.stage,
+                "decision": r.decision,
+                "notes": r.notes,
+                "reviewed_by_user_id": r.reviewed_by_user_id,
+                "created_at": r.created_at,
+            }
+            for r in rows
+        ],
     }
